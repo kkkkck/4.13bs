@@ -201,13 +201,13 @@ CREATE TABLE IF NOT EXISTS `user_activity_session` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `category` (`id`, `name`, `description`, `sort`, `parent_id`, `practice_mode`, `status`) VALUES
-  (1, 'Marxism Basics', 'Principles of Marxism and dialectical materialism', 1, 0, 1, 1),
-  (2, 'Mao Thought and Modern Theory', 'Major theories of Chinese socialism', 2, 0, 1, 1),
-  (3, 'Modern Chinese History', 'Historical choices and national development', 3, 0, 2, 1),
-  (4, 'Ideology and Rule of Law', 'Civic values, ethics, and legal literacy', 4, 0, 1, 1),
-  (5, 'Current Affairs', 'Political hotspots and policy interpretation', 5, 0, 2, 1),
-  (101, 'Historical Choice and Revolutionary Road', 'Sample chapter under Modern Chinese History', 1, 3, 2, 1),
-  (102, 'Current Affairs Methodology', 'Sample chapter under Current Affairs', 1, 5, 2, 1)
+  (1, '马克思主义基本原理', '约 24% · 理论基础模块，客观题高频主阵地', 1, 0, 1, 1),
+  (2, '毛泽东思想和中国特色社会主义理论体系概论', '约 30% · 占比最高的核心专题', 2, 0, 1, 1),
+  (3, '中国近现代史纲要', '约 14% · 以历史主线和关键节点为主', 3, 0, 2, 1),
+  (4, '思想道德与法治', '约 16% · 价值观、法治与伦理判断模块', 4, 0, 1, 1),
+  (5, '形势与政策以及当代世界经济与政治', '约 16% · 时政热点与国际视野模块', 5, 0, 2, 1),
+  (101, '历史的选择与人民的抉择', '近现代史样例章节', 1, 3, 2, 1),
+  (102, '时政热点与政策方法', '时政样例章节', 1, 5, 2, 1)
 ON DUPLICATE KEY UPDATE
   `name` = VALUES(`name`),
   `description` = VALUES(`description`),

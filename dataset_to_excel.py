@@ -121,11 +121,15 @@ SUPPORTED_FILE_SUFFIXES = {".json", ".jsonl", ".csv", ".tsv", ".txt"}
 DIRECTORY_INPUT_SUFFIXES = {".json", ".jsonl"}
 
 EXACT_CATEGORY_MAP = {
+    "马克思主义基本原理": 1,
     "马克思主义基本原理概论": 1,
+    "毛泽东思想和中国特色社会主义理论体系概论": 2,
     "新时代中国特色社会主义思想概论": 2,
     "毛泽东思想和中国特色社会主义": 2,
     "中国近现代史纲要": 3,
+    "思想道德与法治": 4,
     "思想道德修养与法律基础": 4,
+    "形势与政策以及当代世界经济与政治": 5,
 }
 
 CATEGORY_KEYWORD_MAP = {

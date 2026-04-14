@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
@@ -34,6 +35,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
+    private static final List<Integer> MOCK_EXAM_OBJECTIVE_TYPES = List.of(1, 5);
+    private static final Map<Long, Integer> MOCK_EXAM_ROOT_WEIGHTS = buildMockExamRootWeights();
+    private static final Map<Integer, Integer> MOCK_EXAM_TYPE_WEIGHTS = Map.of(1, 16, 5, 17);
 
     @Autowired
     private CacheService cacheService;
@@ -202,7 +206,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Override
     public MockExamPaperResponse generateMockExam(Integer totalQuestions) {
-        int requested = totalQuestions == null ? 20 : totalQuestions;
+        int requested = totalQuestions == null ? 33 : totalQuestions;
         if (requested < 5 || requested > 100) {
             throw new BusinessException("模拟考试题量需在 5 到 100 之间");
         }
@@ -215,7 +219,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         Map<Long, List<Category>> childrenMap = buildChildrenMap(activeCategories);
         List<Question> questionPool = getBaseMapper().selectActiveByCategoryIds(
                 activeCategories.stream().map(Category::getId).toList()
-        );
+        ).stream()
+                .filter(question -> MOCK_EXAM_OBJECTIVE_TYPES.contains(question.getType()))
+                .toList();
         Map<Long, List<Question>> questionsByCategory = questionPool.stream()
                 .collect(Collectors.groupingBy(Question::getCategoryId));
 
@@ -228,19 +234,19 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             List<ExamLeaf> leaves = new ArrayList<>();
             List<Question> rootQuestions = new ArrayList<>(questionsByCategory.getOrDefault(root.getId(), List.of()));
             if (!rootQuestions.isEmpty()) {
-                leaves.add(new ExamLeaf(root, rootQuestions));
+                leaves.add(new ExamLeaf(root, groupQuestionsByType(rootQuestions)));
             }
 
             for (Category child : childrenMap.getOrDefault(root.getId(), List.of())) {
                 List<Question> childQuestions = new ArrayList<>(questionsByCategory.getOrDefault(child.getId(), List.of()));
                 if (!childQuestions.isEmpty()) {
-                    leaves.add(new ExamLeaf(child, childQuestions));
+                    leaves.add(new ExamLeaf(child, groupQuestionsByType(childQuestions)));
                 }
             }
 
-            int available = leaves.stream().mapToInt(leaf -> leaf.questions().size()).sum();
+            int available = leaves.stream().mapToInt(ExamLeaf::getAvailable).sum();
             if (available > 0) {
-                buckets.add(new ExamBucket(root, leaves, available));
+                buckets.add(new ExamBucket(root, leaves));
             }
         }
 
@@ -250,43 +256,68 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
         int availableQuestions = buckets.stream().mapToInt(ExamBucket::getAvailable).sum();
         int actualTotal = Math.min(requested, availableQuestions);
-        Map<Long, Integer> rootAllocation = allocateCounts(actualTotal, buckets, true);
+
+        Map<Integer, Integer> typeTargets = allocateWeightedCounts(
+                actualTotal,
+                Map.of(
+                        1, buckets.stream().mapToInt(bucket -> bucket.getAvailable(1)).sum(),
+                        5, buckets.stream().mapToInt(bucket -> bucket.getAvailable(5)).sum()
+                ),
+                MOCK_EXAM_TYPE_WEIGHTS,
+                true
+        );
 
         List<Question> selectedQuestions = new ArrayList<>();
-        List<MockExamPaperResponse.MockExamSection> sections = new ArrayList<>();
+        Map<Long, SectionAccumulator> sectionAccumulatorMap = new LinkedHashMap<>();
 
-        for (ExamBucket bucket : buckets) {
-            int rootCount = rootAllocation.getOrDefault(bucket.category().getId(), 0);
-            if (rootCount <= 0) {
+        for (Integer type : MOCK_EXAM_OBJECTIVE_TYPES) {
+            int typeTarget = typeTargets.getOrDefault(type, 0);
+            if (typeTarget <= 0) {
                 continue;
             }
 
-            Map<Long, Integer> chapterAllocation = allocateCounts(rootCount, bucket.leaves(), true);
-            List<MockExamPaperResponse.MockExamChapter> chapters = new ArrayList<>();
+            Map<Long, Integer> rootCapacities = buckets.stream()
+                    .filter(bucket -> bucket.getAvailable(type) > 0)
+                    .collect(Collectors.toMap(
+                            bucket -> bucket.category().getId(),
+                            bucket -> bucket.getAvailable(type),
+                            (left, right) -> left,
+                            LinkedHashMap::new
+                    ));
+            Map<Long, Integer> rootAllocation = allocateWeightedCounts(typeTarget, rootCapacities, MOCK_EXAM_ROOT_WEIGHTS, true);
 
-            for (ExamLeaf leaf : bucket.leaves()) {
-                int chapterCount = chapterAllocation.getOrDefault(leaf.category().getId(), 0);
-                if (chapterCount <= 0) {
+            for (ExamBucket bucket : buckets) {
+                int rootCount = rootAllocation.getOrDefault(bucket.category().getId(), 0);
+                if (rootCount <= 0) {
                     continue;
                 }
 
-                List<Question> candidates = new ArrayList<>(leaf.questions());
-                Collections.shuffle(candidates, ThreadLocalRandom.current());
-                selectedQuestions.addAll(candidates.subList(0, Math.min(chapterCount, candidates.size())));
+                Map<Long, Integer> leafCapacities = bucket.leaves().stream()
+                        .filter(leaf -> leaf.getAvailable(type) > 0)
+                        .collect(Collectors.toMap(
+                                leaf -> leaf.category().getId(),
+                                leaf -> leaf.getAvailable(type),
+                                (left, right) -> left,
+                                LinkedHashMap::new
+                        ));
+                Map<Long, Integer> chapterAllocation = allocateWeightedCounts(rootCount, leafCapacities, leafCapacities, false);
 
-                chapters.add(new MockExamPaperResponse.MockExamChapter(
-                        leaf.category().getId(),
-                        leaf.category().getName(),
-                        Math.min(chapterCount, candidates.size())
-                ));
+                for (ExamLeaf leaf : bucket.leaves()) {
+                    int chapterCount = chapterAllocation.getOrDefault(leaf.category().getId(), 0);
+                    if (chapterCount <= 0) {
+                        continue;
+                    }
+
+                    List<Question> candidates = new ArrayList<>(leaf.questions(type));
+                    Collections.shuffle(candidates, ThreadLocalRandom.current());
+                    int take = Math.min(chapterCount, candidates.size());
+                    selectedQuestions.addAll(candidates.subList(0, take));
+
+                    sectionAccumulatorMap
+                            .computeIfAbsent(bucket.category().getId(), key -> new SectionAccumulator(bucket.category()))
+                            .addChapter(leaf.category(), take);
+                }
             }
-
-            sections.add(new MockExamPaperResponse.MockExamSection(
-                    bucket.category().getId(),
-                    bucket.category().getName(),
-                    chapters.stream().mapToInt(MockExamPaperResponse.MockExamChapter::getQuestionCount).sum(),
-                    chapters
-            ));
         }
 
         Collections.shuffle(selectedQuestions, ThreadLocalRandom.current());
@@ -299,6 +330,10 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                     .limit(actualTotal - selectedQuestions.size())
                     .forEach(selectedQuestions::add);
         }
+
+        List<MockExamPaperResponse.MockExamSection> sections = sectionAccumulatorMap.values().stream()
+                .map(SectionAccumulator::toSection)
+                .toList();
 
         return new MockExamPaperResponse(
                 requested,
@@ -431,6 +466,20 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         return 1;
     }
 
+    private static Map<Long, Integer> buildMockExamRootWeights() {
+        Map<Long, Integer> weights = new LinkedHashMap<>();
+        weights.put(1L, 24);
+        weights.put(2L, 30);
+        weights.put(3L, 14);
+        weights.put(4L, 16);
+        weights.put(5L, 16);
+        return Collections.unmodifiableMap(weights);
+    }
+
+    private Map<Integer, List<Question>> groupQuestionsByType(List<Question> questions) {
+        return questions.stream().collect(Collectors.groupingBy(Question::getType, LinkedHashMap::new, Collectors.toList()));
+    }
+
     private List<Category> listCategories(boolean activeOnly) {
         LambdaQueryWrapper<Category> wrapper = new LambdaQueryWrapper<>();
         if (activeOnly) {
@@ -480,43 +529,48 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         cacheService.deleteByPrefix("questions:category:");
     }
 
-    private Map<Long, Integer> allocateCounts(int total, List<? extends WeightedBucket> buckets, boolean ensureOne) {
-        Map<Long, Integer> result = new HashMap<>();
-        List<? extends WeightedBucket> availableBuckets = buckets.stream()
-                .filter(bucket -> bucket.getAvailable() > 0)
-                .toList();
+    private <T> Map<T, Integer> allocateWeightedCounts(
+            int total,
+            Map<T, Integer> capacities,
+            Map<T, Integer> weights,
+            boolean ensureOne
+    ) {
+        Map<T, Integer> result = new LinkedHashMap<>();
+        Map<T, Integer> availableCapacities = capacities.entrySet().stream()
+                .filter(entry -> entry.getValue() != null && entry.getValue() > 0)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (left, right) -> left, LinkedHashMap::new));
 
-        if (total <= 0 || availableBuckets.isEmpty()) {
+        if (total <= 0 || availableCapacities.isEmpty()) {
             return result;
         }
 
         int remaining = total;
-        if (ensureOne && total >= availableBuckets.size()) {
-            for (WeightedBucket bucket : availableBuckets) {
-                result.put(bucket.getKey(), 1);
+        if (ensureOne && total >= availableCapacities.size()) {
+            for (T key : availableCapacities.keySet()) {
+                result.put(key, 1);
                 remaining -= 1;
             }
         }
 
         List<AllocationRemainder> remainders = new ArrayList<>();
-        double totalWeight = availableBuckets.stream()
-                .mapToDouble(bucket -> Math.max(0, bucket.getAvailable() - result.getOrDefault(bucket.getKey(), 0)))
+        double totalWeight = availableCapacities.keySet().stream()
+                .mapToDouble(key -> Math.max(0, weights.getOrDefault(key, 1)))
                 .sum();
 
         if (remaining > 0 && totalWeight > 0) {
-            for (WeightedBucket bucket : availableBuckets) {
-                int baseAssigned = result.getOrDefault(bucket.getKey(), 0);
-                int capacity = Math.max(0, bucket.getAvailable() - baseAssigned);
+            for (T key : availableCapacities.keySet()) {
+                int baseAssigned = result.getOrDefault(key, 0);
+                int capacity = Math.max(0, availableCapacities.getOrDefault(key, 0) - baseAssigned);
                 if (capacity <= 0) {
                     continue;
                 }
 
-                double exact = remaining * capacity / totalWeight;
+                double exact = remaining * weights.getOrDefault(key, 1) / totalWeight;
                 int allocated = Math.min(capacity, (int) Math.floor(exact));
                 if (allocated > 0) {
-                    result.put(bucket.getKey(), baseAssigned + allocated);
+                    result.put(key, baseAssigned + allocated);
                 }
-                remainders.add(new AllocationRemainder(bucket.getKey(), exact - allocated, capacity - allocated));
+                remainders.add(new AllocationRemainder(key, exact - allocated, capacity - allocated));
             }
 
             int assigned = result.values().stream().mapToInt(Integer::intValue).sum();
@@ -530,15 +584,16 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                         if (result.values().stream().mapToInt(Integer::intValue).sum() >= total) {
                             return;
                         }
-                        result.put(item.key(), result.getOrDefault(item.key(), 0) + 1);
+                        result.put((T) item.key(), result.getOrDefault((T) item.key(), 0) + 1);
                     });
 
             if (leftover > 0 && result.values().stream().mapToInt(Integer::intValue).sum() < total) {
-                for (WeightedBucket bucket : availableBuckets) {
-                    int assignedCount = result.getOrDefault(bucket.getKey(), 0);
-                    while (assignedCount < bucket.getAvailable() && result.values().stream().mapToInt(Integer::intValue).sum() < total) {
+                for (T key : availableCapacities.keySet()) {
+                    int assignedCount = result.getOrDefault(key, 0);
+                    while (assignedCount < availableCapacities.getOrDefault(key, 0)
+                            && result.values().stream().mapToInt(Integer::intValue).sum() < total) {
                         assignedCount += 1;
-                        result.put(bucket.getKey(), assignedCount);
+                        result.put(key, assignedCount);
                     }
                 }
             }
@@ -547,36 +602,68 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         return result;
     }
 
-    private interface WeightedBucket {
-        Long getKey();
-
-        int getAvailable();
-    }
-
-    private record ExamLeaf(Category category, List<Question> questions) implements WeightedBucket {
-        @Override
-        public Long getKey() {
-            return category.getId();
+    private record ExamLeaf(Category category, Map<Integer, List<Question>> questionsByType) {
+        private int getAvailable() {
+            return questionsByType.values().stream().mapToInt(List::size).sum();
         }
 
-        @Override
-        public int getAvailable() {
-            return questions.size();
+        private int getAvailable(int type) {
+            return questions(type).size();
+        }
+
+        private List<Question> questions(int type) {
+            return questionsByType.getOrDefault(type, List.of());
         }
     }
 
-    private record ExamBucket(Category category, List<ExamLeaf> leaves, int available) implements WeightedBucket {
-        @Override
-        public Long getKey() {
-            return category.getId();
+    private record ExamBucket(Category category, List<ExamLeaf> leaves) {
+        private int getAvailable() {
+            return leaves.stream().mapToInt(ExamLeaf::getAvailable).sum();
         }
 
-        @Override
-        public int getAvailable() {
-            return available;
+        private int getAvailable(int type) {
+            return leaves.stream().mapToInt(leaf -> leaf.getAvailable(type)).sum();
         }
     }
 
-    private record AllocationRemainder(Long key, double remainder, int capacity) {
+    private record AllocationRemainder(Object key, double remainder, int capacity) {
+    }
+
+    private static final class SectionAccumulator {
+        private final Category root;
+        private final Map<Long, ChapterAccumulator> chapters = new LinkedHashMap<>();
+
+        private SectionAccumulator(Category root) {
+            this.root = root;
+        }
+
+        private void addChapter(Category category, int questionCount) {
+            chapters.computeIfAbsent(category.getId(), key -> new ChapterAccumulator(category)).add(questionCount);
+        }
+
+        private MockExamPaperResponse.MockExamSection toSection() {
+            List<MockExamPaperResponse.MockExamChapter> chapterItems = chapters.values().stream()
+                    .map(ChapterAccumulator::toChapter)
+                    .toList();
+            int total = chapterItems.stream().mapToInt(MockExamPaperResponse.MockExamChapter::getQuestionCount).sum();
+            return new MockExamPaperResponse.MockExamSection(root.getId(), root.getName(), total, chapterItems);
+        }
+    }
+
+    private static final class ChapterAccumulator {
+        private final Category category;
+        private int questionCount;
+
+        private ChapterAccumulator(Category category) {
+            this.category = category;
+        }
+
+        private void add(int count) {
+            this.questionCount += count;
+        }
+
+        private MockExamPaperResponse.MockExamChapter toChapter() {
+            return new MockExamPaperResponse.MockExamChapter(category.getId(), category.getName(), questionCount);
+        }
     }
 }

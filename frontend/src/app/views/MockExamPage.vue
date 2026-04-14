@@ -3,9 +3,9 @@
     <section class="hero-card compact tight-hero micro-hero nano-hero band-hero mock-hero">
       <div>
         <p class="eyebrow">模拟考试</p>
-        <h2>按专题与章节比例自动组卷，做一套更接近真实考试节奏的题。</h2>
+        <h2>按考试大纲占比组客观题模考，默认覆盖 16 单选 + 17 多选。</h2>
         <p class="hero-copy">
-          系统会优先覆盖已启用专题；如果专题下拆分了章节，会继续按章节题量占比抽题，让整张卷子的知识分布更均衡。
+          网站不做分析题，模考默认按客观题卷处理；专题权重按考试大纲，不再只跟着题库库存走。
         </p>
       </div>
 
@@ -36,15 +36,15 @@
         <label class="field-block">
           <span>题量</span>
           <select v-model.number="totalQuestions" class="input select">
-            <option :value="20">20 题 · 快速摸底</option>
-            <option :value="30">30 题 · 标准训练</option>
-            <option :value="50">50 题 · 强化模拟</option>
+            <option :value="16">16 题 · 单选摸底</option>
+            <option :value="33">33 题 · 客观题标准模考</option>
+            <option :value="50">50 题 · 强化客观题</option>
           </select>
         </label>
 
         <article class="feature-card summary-card">
           <strong>抽题规则</strong>
-          <p>每个专题都会尽量被覆盖；已配置章节的专题会优先按章节配比抽题，避免整张卷子集中在少数知识点。</p>
+          <p>专题占比按 24/30/14/16/16 分配；题型默认向 16 单选 + 17 多选靠拢，已配置章节的专题会继续按章节抽题。</p>
         </article>
       </div>
 
@@ -63,7 +63,7 @@
               <span class="eyebrow">{{ category.practiceMode === 2 ? '章节专题' : '综合专题' }}</span>
               <strong>{{ category.name }}</strong>
             </div>
-            <span class="tag muted">{{ chapterCount(category.id) }} 个章节</span>
+            <span class="tag muted">{{ syllabusWeightLabel(category.id) }} · {{ chapterCount(category.id) }} 个章节</span>
           </div>
 
           <p>{{ category.description || '当前专题已纳入模拟考试抽题范围。' }}</p>
@@ -356,7 +356,7 @@ interface PresentedOption {
 }
 
 const categories = ref<Category[]>([])
-const totalQuestions = ref(20)
+const totalQuestions = ref(33)
 const loading = ref(false)
 const submitting = ref(false)
 const error = ref('')
@@ -376,6 +376,13 @@ const startTime = ref(Date.now())
 const elapsedSeconds = ref(0)
 
 let timer: number | null = null
+const SYLLABUS_WEIGHT_MAP: Record<number, string> = {
+  1: '约 24%',
+  2: '约 30%',
+  3: '约 14%',
+  4: '约 16%',
+  5: '约 16%'
+}
 
 const rootCategories = computed(() => categories.value.filter((item) => !item.parentId))
 const suggestedMinutes = computed(() => Math.max(30, totalQuestions.value * 2))
@@ -527,6 +534,7 @@ const questionGroups = computed(() => {
 
 const chaptersOf = (parentId: number) => categories.value.filter((item) => item.parentId === parentId)
 const chapterCount = (parentId: number) => chaptersOf(parentId).length
+const syllabusWeightLabel = (categoryId: number) => SYLLABUS_WEIGHT_MAP[categoryId] || '纲要专题'
 
 const difficultyText = (difficulty: number) => ['基础', '提高', '冲刺'][difficulty - 1] || '未标注'
 

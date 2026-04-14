@@ -72,6 +72,7 @@
 
           <div class="record-meta">
             <span v-if="matchesLastPractice(category)" class="record-pill success">上次练到这里</span>
+            <span class="record-pill">{{ syllabusWeightLabel(category.id) }}</span>
             <span class="record-pill">{{ chaptersOf(category.id).length ? '推荐先走章节' : '推荐先整组拉通' }}</span>
             <span class="record-pill muted">专题编号 {{ category.id }}</span>
           </div>
@@ -117,6 +118,13 @@ const loading = ref(false)
 const error = ref('')
 const PRACTICE_SOURCE_FILTER_KEY = 'shuati:practice-source-filter'
 const selectedSourceType = ref(0)
+const SYLLABUS_WEIGHT_MAP: Record<number, string> = {
+  1: '约 24%',
+  2: '约 30%',
+  3: '约 14%',
+  4: '约 16%',
+  5: '约 16%'
+}
 
 const rootCategories = computed(() => categories.value.filter((item) => !item.parentId))
 const chapterReadyCount = computed(() => rootCategories.value.filter((item) => chaptersOf(item.id).length > 0).length)
@@ -154,6 +162,8 @@ const buildPracticeRoute = (categoryId: number) => ({
     ...(selectedSourceType.value ? { sourceType: String(selectedSourceType.value) } : {})
   }
 })
+
+const syllabusWeightLabel = (categoryId: number) => SYLLABUS_WEIGHT_MAP[categoryId] || '纲要专题'
 
 const loadCategories = async () => {
   loading.value = true
