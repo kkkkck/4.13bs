@@ -1,0 +1,85 @@
+services:
+  # MySQL 8.0 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: question-bank-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: your_mysql_root_password
+      MYSQL_DATABASE: question_bank
+      MYSQL_USER: question_user
+      MYSQL_PASSWORD: your_mysql_password
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./init_database.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis 7.x 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: question-bank-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+
+  # 后端 Spring Boot 应用
+  backend:
+    image: openjdk:17-jdk-slim
+    container_name: question-bank-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../backend/target/shuati-website-0.0.1-SNAPSHOT-exec.jar:/app/app.jar
+      - ./logs:/var/log/question-bank
+    working_dir: /app
+    command: java -Xms512m -Xmx1024m -jar /app/app.jar
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/question_bank?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=question_user
+      - SPRING_DATASOURCE_PASSWORD=your_mysql_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=your_redis_password
+      - JWT_SECRET=your_jwt_secret_key_here_must_be_at_least_256_bits
+      - JWT_EXPIRATION=604800000
+      - MAIL_ENABLED=false
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "true"]
+      timeout: 10s
+      retries: 5
+
+  # Nginx 前端服务
+  nginx:
+    image: nginx:alpine
+    container_name: question-bank-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ../frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:

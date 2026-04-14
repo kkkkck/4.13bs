@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.刷题.mapper.UserActivitySessionMapper">
+
+    <select id="selectAverageDurationSecondsPerUser" resultType="java.lang.Integer">
+        SELECT COALESCE(ROUND(AVG(COALESCE(activity.total_duration, 0))), 0)
+        FROM user u
+        LEFT JOIN (
+            SELECT user_id, SUM(total_duration_seconds) AS total_duration
+            FROM user_activity_session
+            GROUP BY user_id
+        ) activity ON u.id = activity.user_id
+        WHERE u.status = 1
+    </select>
+
+    <select id="selectTrackedUserCount" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT user_id)
+        FROM user_activity_session
+    </select>
+
+    <select id="selectDailyDuration" resultType="java.util.Map">
+        SELECT DATE(created_at) AS date, COALESCE(SUM(total_duration_seconds), 0) AS durationSeconds
+        FROM user_activity_session
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+    </select>
+
+    <select id="selectDurationDistribution" resultType="java.util.Map">
+        <![CDATA[
+        SELECT 1 AS bucketOrder, '0-10 min' AS bucketLabel,
+               COALESCE(SUM(CASE WHEN totals.total_duration < 600 THEN 1 ELSE 0 END), 0) AS userCount
+        FROM (
+            SELECT u.id, COALESCE(activity.total_duration, 0) AS total_duration
+            FROM user u
+            LEFT JOIN (
+                SELECT user_id, SUM(total_duration_seconds) AS total_duration
+                FROM user_activity_session
+                GROUP BY user_id
+            ) activity ON u.id = activity.user_id
+            WHERE u.status = 1
+        ) totals
+        UNION ALL
+        SELECT 2 AS bucketOrder, '10-30 min' AS bucketLabel,
+               COALESCE(SUM(CASE WHEN totals.total_duration >= 600 AND totals.total_duration < 1800 THEN 1 ELSE 0 END), 0) AS userCount
+        FROM (
+            SELECT u.id, COALESCE(activity.total_duration, 0) AS total_duration
+            FROM user u
+            LEFT JOIN (
+                SELECT user_id, SUM(total_duration_seconds) AS total_duration
+                FROM user_activity_session
+                GROUP BY user_id
+            ) activity ON u.id = activity.user_id
+            WHERE u.status = 1
+        ) totals
+        UNION ALL
+        SELECT 3 AS bucketOrder, '30-60 min' AS bucketLabel,
+               COALESCE(SUM(CASE WHEN totals.total_duration >= 1800 AND totals.total_duration < 3600 THEN 1 ELSE 0 END), 0) AS userCount
+        FROM (
+            SELECT u.id, COALESCE(activity.total_duration, 0) AS total_duration
+            FROM user u
+            LEFT JOIN (
+                SELECT user_id, SUM(total_duration_seconds) AS total_duration
+                FROM user_activity_session
+                GROUP BY user_id
+            ) activity ON u.id = activity.user_id
+            WHERE u.status = 1
+        ) totals
+        UNION ALL
+        SELECT 4 AS bucketOrder, '60-120 min' AS bucketLabel,
+               COALESCE(SUM(CASE WHEN totals.total_duration >= 3600 AND totals.total_duration < 7200 THEN 1 ELSE 0 END), 0) AS userCount
+        FROM (
+            SELECT u.id, COALESCE(activity.total_duration, 0) AS total_duration
+            FROM user u
+            LEFT JOIN (
+                SELECT user_id, SUM(total_duration_seconds) AS total_duration
+                FROM user_activity_session
+                GROUP BY user_id
+            ) activity ON u.id = activity.user_id
+            WHERE u.status = 1
+        ) totals
+        UNION ALL
+        SELECT 5 AS bucketOrder, '120+ min' AS bucketLabel,
+               COALESCE(SUM(CASE WHEN totals.total_duration >= 7200 THEN 1 ELSE 0 END), 0) AS userCount
+        FROM (
+            SELECT u.id, COALESCE(activity.total_duration, 0) AS total_duration
+            FROM user u
+            LEFT JOIN (
+                SELECT user_id, SUM(total_duration_seconds) AS total_duration
+                FROM user_activity_session
+                GROUP BY user_id
+            ) activity ON u.id = activity.user_id
+            WHERE u.status = 1
+        ) totals
+        ORDER BY bucketOrder
+        ]]>
+    </select>
+
+    <select id="selectUserActivitySummaryByUserIds" resultType="java.util.Map">
+        SELECT
+            user_id AS userId,
+            MAX(last_seen_at) AS lastSeenAt
+        FROM user_activity_session
+        WHERE user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        GROUP BY user_id
+    </select>
+
+</mapper>

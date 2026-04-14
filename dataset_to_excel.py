@@ -10,7 +10,7 @@ Supported input formats:
 
 Output:
 - .xlsx file with columns:
-  content, type, difficulty, tags, source, optionA, optionB, optionC, optionD,
+  content, type, difficulty, tags, source, sourceType, optionA, optionB, optionC, optionD,
   correctAnswer, analysis, solutionStrategy, categoryId, status
 
 Examples:
@@ -47,6 +47,7 @@ HEADERS = [
     "difficulty",
     "tags",
     "source",
+    "sourceType",
     "optionA",
     "optionB",
     "optionC",
@@ -90,6 +91,7 @@ FIELD_ALIASES = {
         "kaodian_level_text",
     ],
     "source": ["source", "origin", "paper", "exam", "dataset", "book", "chuchu"],
+    "sourceType": ["sourceType", "source_type", "originType", "origin_type", "question_origin"],
     "optionA": ["optionA", "option_a", "a", "choiceA", "choice_a", "answer_a"],
     "optionB": ["optionB", "option_b", "b", "choiceB", "choice_b", "answer_b"],
     "optionC": ["optionC", "option_c", "c", "choiceC", "choice_c", "answer_c"],
@@ -292,6 +294,36 @@ def normalize_status(value: Any, default_value: int) -> int:
 def normalize_source(value: Any, default_value: str) -> str:
     text = stringify(value)
     return text or default_value
+
+
+def infer_source_type_from_source(source: str) -> str:
+    normalized = source.strip().lower()
+    if (
+        "模拟" in normalized
+        or "mock" in normalized
+        or "1000题" in normalized
+        or "肖秀荣" in normalized
+    ):
+        return "模拟题"
+    return "真题"
+
+
+def normalize_source_type(value: Any, source_value: str, default_value: str) -> str:
+    text = stringify(value).lower()
+    if text in {"1", "真题", "真题卷", "real", "real-exam", "past-paper", "exam"}:
+        return "真题"
+    if text in {"2", "模拟题", "模拟卷", "mock", "mock-exam"}:
+        return "模拟题"
+
+    if source_value:
+        return infer_source_type_from_source(source_value)
+    if default_value:
+        return infer_source_type_from_source(default_value)
+    return "真题"
+
+
+def normalize_category_override(record: dict[str, Any]) -> int | None:
+    return parse_int(record.get("__resolved_category_id__"))
 
 
 def collect_input_paths(input_path: Path) -> list[Path]:
@@ -732,6 +764,7 @@ def convert_record(
     mapping: dict[str, list[str]],
     default_category_id: int,
     default_source: str,
+    default_source_type: str,
     default_difficulty: int,
     default_status: int,
     category_mode: str = "top",
@@ -751,18 +784,21 @@ def convert_record(
         if explicit_category_id is not None:
             record = dict(record)
             record["categoryId"] = explicit_category_id
-    category_id = resolve_category_id(record, default_category_id, category_mode, chapter_category_id_map)
+    category_override = normalize_category_override(record)
+    category_id = category_override if category_override is not None else resolve_category_id(record, default_category_id, category_mode, chapter_category_id_map)
     status_value = normalize_status(pick_value(record, mapping, "status"), default_status)
 
     option_map = {label: text for label, text in options}
     source_default = record.get("__source_stem__") or default_source
+    source_value = normalize_source(pick_value(record, mapping, "source"), source_default)
 
     return [
         content,
         TYPE_OUTPUT[type_value],
         DIFFICULTY_OUTPUT[difficulty_value],
         build_tags(record, mapping),
-        normalize_source(pick_value(record, mapping, "source"), source_default),
+        source_value,
+        normalize_source_type(pick_value(record, mapping, "sourceType"), source_value, default_source_type),
         option_map.get("A", ""),
         option_map.get("B", ""),
         option_map.get("C", ""),
@@ -904,6 +940,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--category-mode", choices=("top", "chapter"), default="top", help="Map records to top categories or generated chapter categories")
     parser.add_argument("--category-seed-output", help="Optional SQL path for generated chapter category seed data")
     parser.add_argument("--source", default="", help="Fallback source value")
+    parser.add_argument("--source-type", default="", help="Fallback source type: 真题/模拟题 or real-exam/mock-exam")
     parser.add_argument("--difficulty", default="medium", help="Fallback difficulty: basic/medium/hard or 1/2/3")
     parser.add_argument("--status", type=int, default=1, help="Fallback status value, usually 1")
     parser.add_argument("--mapping", help="Optional JSON mapping file")
@@ -925,6 +962,7 @@ def main() -> int:
         input_paths = collect_input_paths(input_path)
         default_difficulty = normalize_difficulty(args.difficulty, 2)
         default_source = args.source.strip() or input_path.stem
+        default_source_type = normalize_source_type(args.source_type, default_source, "")
 
         records: list[dict[str, Any]] = []
         for source_path in input_paths:
@@ -942,6 +980,7 @@ def main() -> int:
                 mapping=mapping,
                 default_category_id=args.category_id,
                 default_source=default_source,
+                default_source_type=default_source_type,
                 default_difficulty=default_difficulty,
                 default_status=args.status,
                 category_mode=args.category_mode,

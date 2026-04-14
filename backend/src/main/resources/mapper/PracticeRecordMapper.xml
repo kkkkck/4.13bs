@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.刷题.mapper.PracticeRecordMapper">
+    
+    <select id="selectTotalQuestions" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(total_questions), 0) FROM practice_record WHERE user_id = #{userId}
+    </select>
+    
+    <select id="selectTotalCorrect" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(correct_count), 0) FROM practice_record WHERE user_id = #{userId}
+    </select>
+    
+    <select id="selectContinuousDays" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT DATE(created_at)) 
+        FROM practice_record 
+        WHERE user_id = #{userId} 
+        AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    </select>
+    
+    <select id="selectCorrectRateByCategory" resultType="java.util.Map">
+        SELECT 
+            COALESCE(parent.id, c.id) as categoryId,
+            COALESCE(parent.name, c.name) as categoryName,
+            COALESCE(SUM(r.correct_count), 0) as correctCount,
+            COALESCE(SUM(r.total_questions), 0) as totalCount,
+            CASE WHEN SUM(r.total_questions) > 0 THEN 
+                ROUND(SUM(r.correct_count) * 100.0 / SUM(r.total_questions), 2) 
+            ELSE 0 END as correctRate
+        FROM category c
+        LEFT JOIN category parent ON c.parent_id = parent.id
+        LEFT JOIN practice_record r ON c.id = r.category_id AND r.user_id = #{userId}
+        WHERE c.status = 1
+        GROUP BY COALESCE(parent.id, c.id), COALESCE(parent.name, c.name)
+        ORDER BY MIN(COALESCE(parent.sort, c.sort)), MIN(COALESCE(parent.id, c.id))
+    </select>
+    
+    <select id="selectRecentRecords" resultType="com.example.刷题.entity.PracticeRecord">
+        SELECT id, user_id, category_id, total_questions, correct_count, duration, created_at
+        FROM practice_record
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+    
+    <select id="selectDailyCorrectRate" resultType="java.util.Map">
+        SELECT 
+            DATE(created_at) as date,
+            COALESCE(SUM(correct_count), 0) as correctCount,
+            COALESCE(SUM(total_questions), 0) as totalCount,
+            CASE WHEN SUM(total_questions) > 0 THEN 
+                ROUND(SUM(correct_count) * 100.0 / SUM(total_questions), 2) 
+            ELSE 0 END as correctRate
+        FROM practice_record
+        WHERE user_id = #{userId}
+        AND created_at >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+    </select>
+    
+</mapper>

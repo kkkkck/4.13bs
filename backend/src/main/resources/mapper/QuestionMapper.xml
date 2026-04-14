@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.刷题.mapper.QuestionMapper">
+
+    <select id="selectByCategoryIds" resultType="com.example.刷题.entity.Question">
+        SELECT id, content, type, difficulty, tags, source, source_type, option_a, option_b, option_c, option_d,
+               correct_answer, analysis, solution_strategy, category_id, status, created_at, updated_at
+        FROM question
+        WHERE status = 1
+        AND type != 3
+        <if test="categoryIds != null and categoryIds.size > 0">
+            AND category_id IN
+            <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
+                #{categoryId}
+            </foreach>
+        </if>
+        <if test="sourceType != null">
+            AND source_type = #{sourceType}
+        </if>
+        ORDER BY id
+    </select>
+
+    <select id="selectQuestionList" resultType="com.example.刷题.entity.Question">
+        SELECT id, content, type, difficulty, tags, source, source_type, option_a, option_b, option_c, option_d,
+               correct_answer, analysis, solution_strategy, category_id, status, created_at, updated_at
+        FROM question
+        WHERE type != 3
+        <if test="keyword != null and keyword != ''">
+            AND (content LIKE CONCAT('%', #{keyword}, '%') OR tags LIKE CONCAT('%', #{keyword}, '%') OR source LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="categoryIds != null and categoryIds.size > 0">
+            AND category_id IN
+            <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
+                #{categoryId}
+            </foreach>
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="type != null">
+            AND type = #{type}
+        </if>
+        <if test="difficulty != null">
+            AND difficulty = #{difficulty}
+        </if>
+        <if test="sourceType != null">
+            AND source_type = #{sourceType}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectActiveByCategoryIds" resultType="com.example.刷题.entity.Question">
+        SELECT id, content, type, difficulty, tags, source, source_type, option_a, option_b, option_c, option_d,
+               correct_answer, analysis, solution_strategy, category_id, status, created_at, updated_at
+        FROM question
+        WHERE status = 1
+        AND type != 3
+        <if test="categoryIds != null and categoryIds.size > 0">
+            AND category_id IN
+            <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
+                #{categoryId}
+            </foreach>
+        </if>
+        ORDER BY id
+    </select>
+
+    <select id="selectQuestionCountByCategory" resultType="java.util.Map">
+        SELECT COALESCE(parent.name, c.name) as categoryName, COUNT(q.id) as count
+        FROM category c
+        LEFT JOIN category parent ON c.parent_id = parent.id
+        LEFT JOIN question q ON c.id = q.category_id AND q.type != 3
+        GROUP BY COALESCE(parent.id, c.id), COALESCE(parent.name, c.name)
+        ORDER BY COUNT(q.id) DESC, COALESCE(parent.name, c.name)
+    </select>
+
+    <select id="selectQuestionCountByType" resultType="java.util.Map">
+        SELECT
+            CASE type
+                WHEN 1 THEN 'Single Choice'
+                WHEN 2 THEN 'Blank'
+                WHEN 4 THEN 'Short Answer'
+                WHEN 5 THEN 'Multiple Choice'
+                ELSE 'Unknown'
+            END as typeName,
+            COUNT(id) as count
+        FROM question
+        WHERE type != 3
+        GROUP BY type
+        ORDER BY COUNT(id) DESC, type
+    </select>
+
+    <select id="countImportDuplicates" resultType="long">
+        SELECT COUNT(1)
+        FROM question
+        WHERE content = #{question.content}
+          AND type = #{question.type}
+          AND category_id = #{question.categoryId}
+          AND source_type = #{question.sourceType}
+          AND correct_answer = #{question.correctAnswer}
+        <choose>
+            <when test="question.source != null and question.source != ''">
+                AND source = #{question.source}
+            </when>
+            <otherwise>
+                AND (source IS NULL OR source = '')
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="question.optionA != null and question.optionA != ''">
+                AND option_a = #{question.optionA}
+            </when>
+            <otherwise>
+                AND (option_a IS NULL OR option_a = '')
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="question.optionB != null and question.optionB != ''">
+                AND option_b = #{question.optionB}
+            </when>
+            <otherwise>
+                AND (option_b IS NULL OR option_b = '')
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="question.optionC != null and question.optionC != ''">
+                AND option_c = #{question.optionC}
+            </when>
+            <otherwise>
+                AND (option_c IS NULL OR option_c = '')
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="question.optionD != null and question.optionD != ''">
+                AND option_d = #{question.optionD}
+            </when>
+            <otherwise>
+                AND (option_d IS NULL OR option_d = '')
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

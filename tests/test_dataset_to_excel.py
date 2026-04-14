@@ -55,6 +55,7 @@ class DatasetToExcelTests(unittest.TestCase):
             mapping={},
             default_category_id=99,
             default_source="fallback",
+            default_source_type="真题",
             default_difficulty=2,
             default_status=1,
         )
@@ -62,11 +63,12 @@ class DatasetToExcelTests(unittest.TestCase):
         self.assertIsNotNone(row)
         assert row is not None
         self.assertEqual("multiple-choice", row[1])
-        self.assertEqual("实践观点", row[5])
-        self.assertEqual("联系观点", row[7])
-        self.assertEqual("A,C", row[9])
+        self.assertEqual("真题", row[5])
+        self.assertEqual("实践观点", row[6])
+        self.assertEqual("联系观点", row[8])
+        self.assertEqual("A,C", row[10])
         self.assertEqual("2024考研真题", row[4])
-        self.assertEqual("1", row[12])
+        self.assertEqual("1", row[13])
         self.assertIn("马克思主义基本原理概论", row[3])
         self.assertIn("第一章 辩证唯物论", row[3])
 
@@ -124,6 +126,7 @@ class DatasetToExcelTests(unittest.TestCase):
             mapping={},
             default_category_id=99,
             default_source="fallback",
+            default_source_type="真题",
             default_difficulty=2,
             default_status=1,
             category_mode="chapter",
@@ -132,7 +135,7 @@ class DatasetToExcelTests(unittest.TestCase):
 
         self.assertIsNotNone(row)
         assert row is not None
-        self.assertEqual("3001", row[12])
+        self.assertEqual("3001", row[13])
 
     def test_render_category_seed_sql_contains_upsert_rows(self) -> None:
         catalog = {
@@ -154,6 +157,11 @@ class DatasetToExcelTests(unittest.TestCase):
         self.assertIn("INSERT INTO `category`", sql)
         self.assertIn("(4001, '第一章 人生的青春之问'", sql)
         self.assertIn("ON DUPLICATE KEY UPDATE", sql)
+
+    def test_normalize_source_type_marks_xiao_xiurong_1000_as_mock(self) -> None:
+        source_type = converter.normalize_source_type(None, "22版《肖秀荣1000题》", "")
+
+        self.assertEqual("模拟题", source_type)
 
 
 if __name__ == "__main__":

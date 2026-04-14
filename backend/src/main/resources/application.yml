@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: shuati
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/question_bank?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:youngKCK20}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 5000
+      connect-timeout: 1000
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1
+          max-idle: 8
+          min-idle: 0
+        shutdown-timeout: 100
+      client-type: lettuce
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET:shuati-jwt-secret-key-please-change-this-in-production-2026}
+  expiration: ${JWT_EXPIRATION:604800000}
+  header: Authorization
+
+app:
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+  auth:
+    verification-code-expire-seconds: ${VERIFICATION_CODE_EXPIRE_SECONDS:300}
+    verification-code-cooldown-seconds: ${VERIFICATION_CODE_COOLDOWN_SECONDS:60}
+  security:
+    super-admin-id: ${SUPER_ADMIN_ID:1}
