@@ -5,6 +5,7 @@ export interface AdminOverview {
   totalQuestions: number
   totalCategories: number
   categoryStats: Array<{ categoryName: string; count: number }>
+  hotTopicStats: Array<{ categoryName: string; count: number }>
   typeStats: Array<{ typeName: string; count: number }>
 }
 
@@ -27,6 +28,7 @@ export interface AdminImportResult {
   success: boolean
   total: number
   successCount: number
+  enrichedCount?: number
   duplicateCount?: number
   failCount: number
   message: string
@@ -80,7 +82,9 @@ export function deleteAdminQuestion(id: number) {
 export function importAdminQuestions(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post<AdminImportResult>('/admin/questions/import', formData)
+  return request.post<AdminImportResult>('/admin/questions/import', formData, {
+    timeout: 10 * 60 * 1000
+  })
 }
 
 export function getAdminCategories() {

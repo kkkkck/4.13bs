@@ -4,11 +4,10 @@
       <div class="panel-head">
         <div>
           <h2>错题记录</h2>
-          <p>先用筛选把范围收窄，再进入一轮针对性的错题重练。</p>
         </div>
         <div class="row-actions">
           <button class="primary-btn" :disabled="!filteredRetryQuestionIds.length" @click="openPracticeModal">
-            开始错题重练
+            开始重练
           </button>
           <button v-if="hasActiveFilters" class="ghost-btn" @click="resetFilters">清空筛选</button>
         </div>
@@ -19,8 +18,6 @@
         <span>当前显示 {{ filteredItems.length }}</span>
         <span>高频错题 {{ frequentWrongCount }}</span>
         <span>可回练 {{ filteredRetryQuestionIds.length }}</span>
-        <span>最近暴露 {{ latestWrongLabel }}</span>
-        <span>优先处理 {{ hotWrongLabel }}</span>
       </div>
 
       <p v-if="message" class="form-success">{{ message }}</p>
@@ -53,7 +50,7 @@
             <span>排序方式</span>
             <div class="row-actions wrong-sort-actions">
               <button :class="sortMode === 'wrong-desc' ? 'primary-btn' : 'ghost-btn'" @click="setSortMode('wrong-desc')">
-                按错误次数
+                错误次数
               </button>
               <button :class="sortMode === 'latest-desc' ? 'primary-btn' : 'ghost-btn'" @click="setSortMode('latest-desc')">
                 最近错误
@@ -84,18 +81,18 @@
                 <span v-if="item.question?.source" class="record-pill muted">{{ item.question.source }}</span>
                 <span v-for="tag in tagList(item.question)" :key="tag" class="record-pill muted">{{ tag }}</span>
               </div>
-            </div>
+          </div>
 
-            <div class="list-actions">
-              <RouterLink class="ghost-btn" :to="buildPracticeLink(item.question)">重练该题</RouterLink>
-              <button class="ghost-btn" :disabled="removingId === item.record.id" @click="openRemoveModal(item)">
-                {{ removingId === item.record.id ? '移除中...' : '移除' }}
-              </button>
+          <div class="list-actions">
+            <RouterLink class="ghost-btn" :to="buildPracticeLink(item.question)">去重练</RouterLink>
+            <button class="ghost-btn" :disabled="removingId === item.record.id" @click="openRemoveModal(item)">
+              {{ removingId === item.record.id ? '移除中...' : '移除' }}
+            </button>
             </div>
           </article>
         </div>
 
-        <div v-else class="empty-state">当前筛选条件下没有错题，换个范围试试。</div>
+        <div v-else class="empty-state">暂无符合条件的错题。</div>
 
         <div v-if="totalItems > pageSize" class="pagination-bar">
           <span class="pagination-meta">第 {{ currentPage }} / {{ totalPages }} 页，共 {{ totalItems }} 条</span>
@@ -113,8 +110,8 @@
       <section class="panel-card modal-dialog">
         <div class="panel-head">
           <div>
-            <h3>错题重练设置</h3>
-            <p>可以直接重练当前筛选结果，也可以在这里再按专题或章节收窄一次。</p>
+            <h3>重练设置</h3>
+            <p>按当前范围筛出错题后开始重练。</p>
           </div>
           <button class="ghost-btn" @click="closePracticeModal">关闭</button>
         </div>
@@ -123,7 +120,7 @@
           <label class="field-block">
             <span>专题</span>
             <select v-model.number="practiceRootId" class="input select">
-              <option :value="0">沿用当前筛选结果</option>
+              <option :value="0">沿用当前筛选</option>
               <option v-for="category in rootCategories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
@@ -159,7 +156,7 @@
         <div class="panel-head compact">
           <div>
             <h3>移除错题记录</h3>
-            <p>只会移除错题本记录，不会删除题目本身。</p>
+            <p>只会移除错题记录，不会删除原题。</p>
           </div>
         </div>
 
@@ -257,14 +254,6 @@ const frequentWrongCount = computed(() => filteredItems.value.filter((item) => i
 const filteredRetryQuestionIds = computed(() =>
   filteredItems.value.map((item) => item.question?.id || 0).filter((id) => Number.isFinite(id) && id > 0)
 )
-const hotWrong = computed(() => filteredItems.value[0] || null)
-const latestWrong = computed(() =>
-  [...filteredItems.value].sort((left, right) => compareTime(right, left))[0] || null
-)
-const hotWrongLabel = computed(() => (hotWrong.value ? `${hotWrong.value.record.wrongCount} 次错误` : '暂无高频错题'))
-const latestWrongLabel = computed(() =>
-  latestWrong.value ? new Date(latestWrong.value.record.lastWrongTime).toLocaleDateString('zh-CN') : '暂无记录'
-)
 
 const practiceQuestionIds = computed(() => {
   const source = filteredItems.value.filter((item) => {
@@ -309,9 +298,9 @@ const formatTime = (value: string) => {
 }
 
 const severityText = (wrongCount: number) => {
-  if (wrongCount >= 4) return '重点清空'
-  if (wrongCount >= 2) return '优先复练'
-  return '常规回看'
+  if (wrongCount >= 4) return '高频错误'
+  if (wrongCount >= 2) return '需要回练'
+  return '最近错误'
 }
 
 const sourceTypeText = (sourceType = 1) => (sourceType === 2 ? '模拟题' : '真题')

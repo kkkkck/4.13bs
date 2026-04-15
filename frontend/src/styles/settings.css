@@ -1,0 +1,345 @@
+﻿.settings-dialog {
+  width: min(920px, 100%);
+  position: relative;
+}
+
+.settings-header {
+  margin-bottom: 0;
+}
+
+.settings-close-btn {
+  min-width: 74px;
+}
+
+.settings-scroll {
+  max-height: calc(100vh - 172px);
+  display: grid;
+}
+
+.settings-stack {
+  display: grid;
+  gap: 20px;
+}
+
+.settings-account-panel,
+.settings-section-card,
+.settings-email-dialog {
+  padding: 22px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(249, 243, 236, 0.9));
+  border: 1px solid rgba(126, 79, 61, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.54);
+}
+
+.settings-account-panel,
+.settings-section-card {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-account-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.settings-account-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-account-copy strong {
+  font-size: 24px;
+  font-family: 'Source Han Serif SC', 'Songti SC', serif;
+}
+
+.settings-account-copy small {
+  color: var(--text-muted);
+}
+
+.settings-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-section-head strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.settings-section-head p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-password-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-avatar-actions,
+.settings-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.settings-inline-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-action-btn,
+.settings-inline-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-action-btn {
+  min-width: 152px;
+}
+
+.settings-inline-btn {
+  min-width: 136px;
+}
+
+.settings-input-shell {
+  position: relative;
+}
+
+.settings-input-shell .input {
+  padding-right: 84px;
+}
+
+.settings-visibility-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+.settings-submask {
+  position: absolute;
+  inset: 0;
+  background: rgba(21, 12, 12, 0.3);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.settings-email-dialog {
+  width: min(620px, 100%);
+  display: grid;
+  gap: 18px;
+  box-shadow: 0 26px 60px rgba(47, 27, 19, 0.18);
+}
+
+.settings-email-head h4 {
+  margin: 0;
+  font-family: 'Source Han Serif SC', 'Songti SC', serif;
+  font-size: 20px;
+}
+
+.settings-email-head p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.settings-email-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-email-code-field {
+  gap: 8px;
+}
+
+.settings-feedback-bar {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-feedback-bar .form-error,
+.settings-feedback-bar .form-success {
+  margin: 0;
+}
+
+.compact-chart-box {
+  min-height: 180px;
+}
+
+.admin-chart-grid .chart-box {
+  min-height: 190px;
+}
+
+.admin-chart-grid .chart-empty {
+  min-height: 150px;
+}
+
+.empty-state {
+  min-height: 160px;
+  padding: 28px 24px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.7;
+  border-radius: 20px;
+  background: rgba(249, 243, 236, 0.92);
+  border: 1px solid rgba(214, 189, 165, 0.5);
+  box-shadow: none;
+}
+
+.empty-state .eyebrow {
+  color: #9a6133;
+}
+
+.empty-state h2,
+.empty-state h3 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: clamp(22px, 2.6vw, 28px);
+  line-height: 1.2;
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 34ch;
+}
+
+.empty-state > .primary-btn,
+.empty-state > .ghost-btn {
+  margin-top: 6px;
+}
+
+.admin-page-dense .empty-state {
+  min-height: 96px;
+  padding: 18px 16px;
+  border-radius: 16px;
+}
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(21, 12, 12, 0.52);
+  backdrop-filter: blur(7px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.modal-dialog {
+  width: min(860px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.99), rgba(247, 240, 233, 0.97));
+  border: 1px solid rgba(229, 208, 188, 0.92);
+  box-shadow: 0 30px 64px rgba(34, 22, 18, 0.24);
+}
+
+.modal-dialog .panel-head {
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.modal-dialog .panel-head h3 {
+  font-size: 20px;
+}
+
+.modal-dialog .panel-head p {
+  font-size: 13px;
+}
+
+.modal-dialog.large {
+  width: min(1080px, 100%);
+}
+
+.confirm-dialog {
+  width: min(560px, 100%);
+}
+
+.modal-content-scroll {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.modal-body-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.chapter-modal-section {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(126, 79, 61, 0.12);
+  background: linear-gradient(180deg, rgba(255, 251, 246, 0.82), rgba(247, 239, 231, 0.82));
+  display: grid;
+  gap: 12px;
+}
+
+.confirm-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 239, 231, 0.82));
+  border: 1px solid rgba(126, 79, 61, 0.1);
+  display: grid;
+  gap: 10px;
+}
+
+.confirm-actions {
+  justify-content: flex-end;
+}
+
+.modal-dialog .confirm-actions .ghost-btn,
+.modal-dialog .confirm-actions .primary-btn,
+.modal-dialog .editor-actions .ghost-btn,
+.modal-dialog .editor-actions .primary-btn {
+  min-width: 110px;
+}
+
+.danger-btn {
+  background: linear-gradient(135deg, #9f1c22, #c2410c);
+}
+
+.batch-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.batch-toolbar .input {
+  width: auto;
+  min-width: 132px;
+}
+
+.table-checkbox-cell {
+  width: 46px;
+  text-align: center;
+}
+
+.table-checkbox-cell input {
+  width: 16px;
+  height: 16px;
+}
+

@@ -13,6 +13,18 @@ export interface RegisterRequest {
   code: string
 }
 
+export interface UpdateProfileRequest {
+  nickname: string
+  email: string
+  verificationCode?: string
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface AuthResult {
   token: string
   user: User
@@ -39,4 +51,28 @@ export function login(payload: LoginRequest) {
 
 export function getCurrentUser() {
   return request.get<User>('/auth/me')
+}
+
+export function updateCurrentUserProfile(payload: UpdateProfileRequest) {
+  return request.put<User>('/auth/profile', payload)
+}
+
+export function changeCurrentUserPassword(payload: ChangePasswordRequest) {
+  return request.put<void>('/auth/password', payload)
+}
+
+export function sendProfileEmailCode() {
+  return request.post<SendCodeResult>('/auth/profile/email-code')
+}
+
+export function uploadCurrentUserAvatar(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<User>('/auth/avatar', formData, {
+    timeout: 2 * 60 * 1000
+  })
+}
+
+export function deleteCurrentUserAvatar() {
+  return request.delete<User>('/auth/avatar')
 }

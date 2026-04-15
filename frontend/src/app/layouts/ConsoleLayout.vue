@@ -1,38 +1,38 @@
 <template>
   <div class="shell">
     <aside class="shell-sidebar">
-      <div class="brand-block">
-        <p class="eyebrow">学习控制台</p>
-        <h1>考研政治刷题台</h1>
-        <p class="brand-copy">
-          把专题练习、章节推进、模拟考试、错题复盘和数据总结串成一条完整的学习链路。
-        </p>
+      <div class="sidebar-account-card">
+        <button class="sidebar-avatar-button" type="button" @click="settingsOpen = true">
+          <UserAvatar :avatar-url="authStore.user?.avatarUrl" :nickname="authStore.user?.nickname" :size="76" />
+        </button>
+        <div class="sidebar-account-copy">
+          <p class="eyebrow">账号</p>
+          <strong>{{ authStore.user?.nickname || '学习者' }}</strong>
+          <small v-if="authStore.user?.email">{{ authStore.user?.email }}</small>
+          <span class="record-pill muted">{{ authStore.isAdmin ? '管理员' : '普通用户' }}</span>
+        </div>
+        <div class="row-actions">
+          <button class="ghost-btn small" type="button" @click="settingsOpen = true">账号设置</button>
+        </div>
       </div>
 
       <div class="nav-group">
-        <p class="nav-group-title">学习导航</p>
+        <p class="nav-group-title">导航</p>
         <nav class="nav-list">
           <RouterLink v-for="item in items" :key="item.key" :to="item.to" class="nav-item">
             <div class="nav-item-top">
               <span class="nav-icon">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
             </div>
-            <small>{{ item.note }}</small>
           </RouterLink>
         </nav>
-      </div>
-
-      <div class="sidebar-card">
-        <span class="card-title">推荐节奏</span>
-        <strong>专题推进 → 模拟检验 → 错题回补</strong>
-        <small>先建立章节覆盖，再用整卷检查稳定度，最后针对薄弱点快速回补。</small>
       </div>
     </aside>
 
     <main class="shell-main">
       <header class="shell-header">
         <div>
-          <p class="eyebrow">当前页面</p>
+          <p class="eyebrow">页面</p>
           <h2>{{ pageTitle }}</h2>
         </div>
 
@@ -48,27 +48,32 @@
         <RouterView />
       </section>
     </main>
+
+    <UserSettingsModal v-if="authStore.user" :open="settingsOpen" @close="settingsOpen = false" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import UserAvatar from '@/app/components/UserAvatar.vue'
+import UserSettingsModal from '@/app/components/UserSettingsModal.vue'
 import { useAuthStore } from '@/app/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const settingsOpen = ref(false)
 
 const items = [
-  { key: 'categories', to: '/categories', label: '专题练习 / 快速开始', note: '直接进入专题或章节训练入口', icon: '练' },
-  { key: 'mock-exam', to: '/mock-exam', label: '模拟考试', note: '按专题与章节比例组卷', icon: '模' },
-  { key: 'wrong-book', to: '/wrong-book', label: '错题本', note: '集中处理高频失分点', icon: '错' },
-  { key: 'favorite', to: '/favorite', label: '收藏夹', note: '沉淀重点题与经典题', icon: '藏' },
-  { key: 'profile', to: '/profile', label: '个人中心', note: '查看趋势、历史与复盘数据', icon: '我' }
+  { key: 'categories', to: '/categories', label: '专题', icon: '专' },
+  { key: 'mock-exam', to: '/mock-exam', label: '模考', icon: '模' },
+  { key: 'wrong-book', to: '/wrong-book', label: '错题', icon: '错' },
+  { key: 'favorite', to: '/favorite', label: '收藏', icon: '藏' },
+  { key: 'profile', to: '/profile', label: '我的', icon: '我' }
 ]
 
-const pageTitle = computed(() => String(route.meta.title || '考研政治刷题台'))
+const pageTitle = computed(() => String(route.meta.title || '首页'))
 
 const logout = () => {
   authStore.logout()

@@ -1,0 +1,242 @@
+﻿.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 20px;
+  padding: 20px;
+  align-items: stretch;
+}
+
+.auth-hero,
+.auth-card {
+  border-radius: 28px;
+  padding: 32px;
+  border: 1px solid rgba(229, 208, 188, 0.68);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: none;
+}
+
+.auth-hero {
+  color: #fff7ef;
+  background: linear-gradient(160deg, #5b211c 0%, #8c4b2a 100%);
+  display: grid;
+  align-content: center;
+  gap: 14px;
+}
+
+.auth-hero h1 {
+  margin: 0;
+  font-size: clamp(34px, 4.2vw, 56px);
+  line-height: 1.08;
+  font-family: 'Source Han Serif SC', 'Songti SC', serif;
+}
+
+.auth-hero > p:not(.eyebrow) {
+  margin: 0;
+  max-width: 34ch;
+  color: rgba(255, 247, 239, 0.86);
+  line-height: 1.7;
+}
+
+.auth-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.auth-hero .tag {
+  background: rgba(255, 247, 239, 0.12);
+  border: 1px solid rgba(255, 247, 239, 0.14);
+  color: #fff7ef;
+}
+
+.auth-status-grid,
+.dashboard-topic-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-status-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 8px;
+}
+
+.auth-status-card span {
+  color: rgba(255, 247, 239, 0.82);
+}
+
+.auth-status-card strong {
+  font-size: 18px;
+}
+
+.auth-card {
+  background: rgba(255, 249, 241, 0.98);
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.auth-card .panel-head p {
+  max-width: 34ch;
+  line-height: 1.65;
+}
+
+.auth-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 6px;
+  border-radius: 20px;
+  background: rgba(54, 27, 19, 0.06);
+}
+
+.auth-switch-btn {
+  border: none;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.auth-switch-btn.active {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-main);
+  box-shadow: 0 10px 24px rgba(86, 38, 26, 0.08);
+}
+
+.auth-form,
+.editor-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.inline-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+}
+
+.password-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.password-toggle {
+  min-width: 72px;
+}
+
+.inline-form > .ghost-btn,
+.password-field > .ghost-btn {
+  min-height: 46px;
+}
+
+.auth-form > .primary-btn {
+  width: 100%;
+  min-height: 48px;
+}
+
+.editor-actions,
+.header-actions,
+.row-actions,
+.list-actions,
+.question-actions,
+.support-line {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.support-line {
+  color: var(--text-muted);
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid rgba(126, 79, 61, 0.12);
+}
+
+.support-line a {
+  color: var(--brand-red);
+  font-weight: 700;
+}
+
+.form-error {
+  margin: 0;
+  color: #9f1c22;
+}
+
+.form-success {
+  margin: 0;
+  color: #166534;
+}
+
+.form-tip {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.dev-code-card,
+.import-errors,
+.selected-answer,
+.status-strip {
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.dev-code-card,
+.selected-answer,
+.status-strip {
+  background: rgba(250, 242, 234, 0.92);
+  border: 1px solid rgba(185, 106, 47, 0.16);
+  box-shadow: none;
+}
+
+.dev-code-card {
+  display: grid;
+  gap: 8px;
+}
+
+.dev-code-card strong {
+  font-size: 15px;
+}
+
+.status-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #764323;
+  font-size: 13px;
+}
+
+.status-strip > span {
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.admin-page-dense .status-strip {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.dev-code-card small {
+  color: var(--text-muted);
+}
+
+.import-errors {
+  margin-bottom: 16px;
+  display: grid;
+  gap: 8px;
+  background: rgba(159, 28, 34, 0.06);
+  color: #8b1e25;
+}
+

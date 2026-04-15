@@ -2,6 +2,8 @@ export interface User {
   id: number
   email: string
   nickname: string
+  avatarPreset?: string
+  avatarUrl?: string | null
   role: number
   status: number
   emailVerified?: boolean

@@ -1,22 +1,15 @@
 <template>
-  <div class="page-stack">
-    <section class="hero-card compact tight-hero micro-hero nano-hero band-hero mock-hero">
+  <div class="page-stack mock-exam-page">
+    <section class="panel-card page-intro-card compact-overview-card mock-intro-card">
       <div>
         <p class="eyebrow">模拟考试</p>
-        <h2>按考试大纲占比组客观题模考，默认覆盖 16 单选 + 17 多选。</h2>
-        <p class="hero-copy">
-          网站不做分析题，模考默认按客观题卷处理；专题权重按考试大纲，不再只跟着题库库存走。
-        </p>
+        <h2>按考试大纲比例组一套客观题模考。</h2>
       </div>
 
-      <div class="hero-aside">
-        <div class="banner-stat">
-          <span>覆盖专题</span>
-          <strong>{{ rootCategories.length }}</strong>
-        </div>
-        <div class="banner-stat">
-          <span>建议时长</span>
-          <strong>{{ paper?.suggestedDurationMinutes || suggestedMinutes }} 分钟</strong>
+      <div class="hero-aside compact-overview-aside">
+        <div class="status-strip compact-overview-strip">
+          <span>专题 {{ rootCategories.length }}</span>
+          <span>预计 {{ paper?.suggestedDurationMinutes || suggestedMinutes }} 分钟</span>
         </div>
       </div>
     </section>
@@ -25,7 +18,6 @@
       <div class="panel-head">
         <div>
           <h3>组卷设置</h3>
-          <p>当前会自动纳入所有已启用专题；如专题下配置了章节，会按章节占比继续抽题。</p>
         </div>
       </div>
 
@@ -40,51 +32,44 @@
             <option :value="33">33 题 · 客观题标准模考</option>
             <option :value="50">50 题 · 强化客观题</option>
           </select>
+          <small class="form-tip">按大纲比例抽题。</small>
         </label>
-
-        <article class="feature-card summary-card">
-          <strong>抽题规则</strong>
-          <p>专题占比按 24/30/14/16/16 分配；题型默认向 16 单选 + 17 多选靠拢，已配置章节的专题会继续按章节抽题。</p>
-        </article>
       </div>
 
       <div class="row-actions">
         <button class="primary-btn" :disabled="loading || !rootCategories.length" @click="handleGenerate">
-          {{ loading ? '正在组卷...' : '生成模拟卷' }}
+          {{ loading ? '组卷中...' : '生成试卷' }}
         </button>
       </div>
 
       <div v-if="loading" class="empty-state">正在生成模拟试卷...</div>
 
-      <div v-else-if="rootCategories.length" class="root-stack">
-        <article v-for="category in rootCategories" :key="category.id" class="topic-card">
-          <div class="category-topline">
-            <div>
-              <span class="eyebrow">{{ category.practiceMode === 2 ? '章节专题' : '综合专题' }}</span>
-              <strong>{{ category.name }}</strong>
+      <div v-else-if="rootCategories.length" class="compact-row-list">
+        <article v-for="category in rootCategories" :key="category.id" class="compact-row">
+          <div class="compact-row-main">
+            <strong>{{ category.name }}</strong>
+            <div class="compact-row-meta">
+              <span>{{ category.practiceMode === 2 ? '章节专题' : '综合专题' }}</span>
+              <span>{{ syllabusWeightLabel(category.id) }}</span>
+              <span>{{ chapterCount(category.id) }} 个章节</span>
             </div>
-            <span class="tag muted">{{ syllabusWeightLabel(category.id) }} · {{ chapterCount(category.id) }} 个章节</span>
+            <div v-if="chaptersOf(category.id).length" class="chapter-pills compact-inline-pills">
+              <span v-for="chapter in chaptersOf(category.id).slice(0, 6)" :key="chapter.id" class="chapter-pill">
+                {{ chapter.name }}
+              </span>
+            </div>
           </div>
-
-          <p>{{ category.description || '当前专题已纳入模拟考试抽题范围。' }}</p>
-
-          <div v-if="chaptersOf(category.id).length" class="chapter-pills">
-            <span v-for="chapter in chaptersOf(category.id)" :key="chapter.id" class="chapter-pill">
-              {{ chapter.name }}
-            </span>
-          </div>
-          <p v-else class="form-tip">当前还没有拆分章节，系统会直接从该专题题库抽题。</p>
         </article>
       </div>
 
-      <div v-else class="empty-state">当前没有可用于组卷的专题，请先在后台启用专题。</div>
+      <div v-else class="empty-state">暂无可用于组卷的专题。</div>
     </section>
 
     <section v-else class="panel-card">
       <div class="panel-head">
         <div>
           <h3>{{ finished ? '模拟考试已完成' : '模拟考试进行中' }}</h3>
-          <p>{{ pageInfo }} · 已用时 {{ elapsedText }} · {{ finished ? `正确率 ${accuracyText}` : '交卷后统一判分并显示解析' }}</p>
+          <p>{{ pageInfo }} · 已用时 {{ elapsedText }} · {{ finished ? `正确率 ${accuracyText}` : '交卷后统一判分' }}</p>
         </div>
 
         <div class="row-actions">
@@ -96,7 +81,7 @@
         <span>已作答：{{ answeredCount }} / {{ paper.questions.length }}</span>
         <span>答对：{{ finished ? correctCount : '待交卷' }}</span>
         <span>待完成：{{ remainingCount }}</span>
-        <span>建议时长：{{ paper.suggestedDurationMinutes }} 分钟</span>
+        <span>预计用时：{{ paper.suggestedDurationMinutes }} 分钟</span>
       </div>
       <div class="sheet-progress">
         <div class="sheet-progress-bar">
@@ -109,20 +94,9 @@
 
       <div class="exam-layout">
         <div v-if="currentQuestion" :key="`question-${currentQuestion.id}`" class="panel-card question-panel">
-          <div class="question-meta">
-            <span class="tag muted">第 {{ currentIndex + 1 }} 题</span>
-            <span class="tag">{{ difficultyText(currentQuestion.difficulty) }}</span>
-            <span class="tag muted">{{ typeText(currentQuestion.type) }}</span>
-            <span class="tag muted">{{ sourceTypeText(currentQuestion.sourceType) }}</span>
-            <span class="tag muted">{{ questionLocationText }}</span>
-          </div>
+          <div class="question-kicker">{{ questionMetaLine }}</div>
 
           <h3 class="question-title">{{ currentQuestion.content }}</h3>
-          <p v-if="currentQuestion.tags" class="question-tags">{{ currentQuestion.tags }}</p>
-
-          <div v-if="isMultipleChoice" class="selected-answer">
-            多选题支持反复勾选，模考会在整卷交卷后统一判分并展示解析。
-          </div>
 
           <div v-if="isChoiceQuestion" :key="`opt-${currentQuestion.id}`" class="option-grid">
             <button
@@ -158,15 +132,13 @@
               :disabled="finished || submitting || !canSubmit"
               @click="saveCurrentAnswer"
             >
-              {{ submitting ? '保存中...' : finished ? '已交卷' : '保存本题' }}
+              {{ submitting ? '暂存中...' : finished ? '已交卷' : '暂存答案' }}
             </button>
             <button class="ghost-btn" :disabled="currentIndex === 0" @click="previousQuestion">上一题</button>
             <button class="ghost-btn" :disabled="savingRecord" @click="nextQuestion">
               {{ currentIndex === paper.questions.length - 1 ? '交卷' : '下一题' }}
             </button>
           </div>
-
-          <p class="form-tip">快捷键：Ctrl / Cmd + Enter 保存本题，← 返回上一题，→ 进入下一题。</p>
 
           <div
             v-if="finished && currentResult"
@@ -194,13 +166,32 @@
         </div>
 
         <aside class="exam-sidebar sticky-sidebar">
-          <article class="feature-card summary-card">
+          <article class="panel-card summary-card">
             <div class="sheet-card-head">
               <div>
-                <strong>模拟答题卡</strong>
-                <p class="form-tip">模考会先完整作答，再在交卷后统一显示分数、错题和解析。</p>
+                <strong>答题卡</strong>
+                <p class="form-tip">{{ finished ? '已交卷。' : '交卷后统一判分。' }}</p>
               </div>
               <span class="tag muted">{{ answeredCount }}/{{ paper.questions.length }}</span>
+            </div>
+
+            <div class="sheet-summary-grid">
+              <div class="summary-metric">
+                <span>已作答</span>
+                <strong>{{ answeredCount }}</strong>
+              </div>
+              <div class="summary-metric">
+                <span>待完成</span>
+                <strong>{{ remainingCount }}</strong>
+              </div>
+              <div class="summary-metric">
+                <span>状态</span>
+                <strong>{{ finished ? '已交卷' : '作答中' }}</strong>
+              </div>
+              <div class="summary-metric">
+                <span>正确率</span>
+                <strong>{{ finished ? accuracyText : '--' }}</strong>
+              </div>
             </div>
 
             <div class="sheet-legend">
@@ -213,32 +204,7 @@
             </div>
           </article>
 
-          <article class="feature-card summary-card">
-            <div class="category-topline">
-              <strong>作答概览</strong>
-              <small>{{ elapsedText }}</small>
-            </div>
-            <div class="sidebar-list">
-              <div class="category-topline">
-                <span>已作答</span>
-                <strong>{{ answeredCount }}</strong>
-              </div>
-              <div class="category-topline">
-                <span>待完成</span>
-                <strong>{{ remainingCount }}</strong>
-              </div>
-              <div class="category-topline">
-                <span>当前状态</span>
-                <strong>{{ finished ? '已交卷' : '作答中' }}</strong>
-              </div>
-              <div class="category-topline">
-                <span>正确率</span>
-                <strong>{{ finished ? accuracyText : '交卷后显示' }}</strong>
-              </div>
-            </div>
-          </article>
-
-          <article v-for="group in questionGroups" :key="group.label" class="feature-card summary-card sheet-group">
+          <article v-for="group in questionGroups" :key="group.label" class="panel-card summary-card sheet-group">
             <div class="category-topline">
               <strong>{{ group.label }}</strong>
               <small>{{ group.questions.length }} 题</small>
@@ -258,23 +224,6 @@
               </button>
             </div>
           </article>
-
-          <article class="feature-card summary-card">
-            <strong>试卷结构</strong>
-            <div class="sidebar-list">
-              <div v-for="section in paper.sections" :key="section.categoryId">
-                <div class="category-topline">
-                  <span>{{ section.categoryName }}</span>
-                  <small>{{ section.questionCount }} 题</small>
-                </div>
-                <div v-if="section.chapters.length" class="chapter-pills">
-                  <span v-for="chapter in section.chapters" :key="chapter.categoryId" class="chapter-pill">
-                    {{ chapter.categoryName }} · {{ chapter.questionCount }} 题
-                  </span>
-                </div>
-              </div>
-            </div>
-          </article>
         </aside>
       </div>
     </section>
@@ -283,28 +232,22 @@
       <div class="panel-head">
         <div>
           <h3>本次结果</h3>
-          <p>
-            {{
-              recordSaved
-                ? '本次成绩已写入练习历史，你仍可留在当前页面继续复盘。'
-                : '本次成绩已完成结算，可继续留在当前页面复盘。'
-            }}
-          </p>
+          <p>{{ recordSaved ? '成绩已写入练习历史。' : '本次结算已完成。' }}</p>
         </div>
       </div>
 
       <div class="stats-grid compact-stats">
-        <article class="metric-card mini">
+        <article class="metric-card tiny">
           <span>正确题数</span>
           <strong>{{ correctCount }}</strong>
           <small>共 {{ paper.questions.length }} 题</small>
         </article>
-        <article class="metric-card mini">
+        <article class="metric-card tiny">
           <span>正确率</span>
           <strong>{{ accuracyText }}</strong>
           <small>按整卷交卷结果统计</small>
         </article>
-        <article class="metric-card mini">
+        <article class="metric-card tiny">
           <span>用时</span>
           <strong>{{ elapsedText }}</strong>
           <small>建议控制在 {{ paper.suggestedDurationMinutes }} 分钟内</small>
@@ -312,27 +255,30 @@
       </div>
 
       <div class="row-actions">
-        <button class="primary-btn" @click="handleGenerate">再来一套</button>
+        <button class="primary-btn" @click="handleGenerate">重新组卷</button>
       </div>
 
-      <section class="chapter-modal-section">
-        <div class="category-topline">
-          <strong>错题回看</strong>
-          <small>{{ wrongQuestions.length }} 题</small>
+      <div class="compact-row-list">
+        <div class="compact-row compact-row-static">
+          <div class="compact-row-main">
+            <strong>错题回看</strong>
+            <div class="compact-row-meta">
+              <span>{{ wrongQuestions.length }} 题</span>
+            </div>
+            <div v-if="wrongQuestions.length" class="chapter-pills compact-inline-pills">
+              <button
+                v-for="item in wrongQuestions"
+                :key="item.id"
+                class="chapter-pill action"
+                @click="jumpToQuestion(item.index)"
+              >
+                {{ item.index + 1 }}
+              </button>
+            </div>
+            <p v-else class="form-tip">本次全对。</p>
+          </div>
         </div>
-        <div v-if="wrongQuestions.length" class="sheet-grid">
-          <button
-            v-for="item in wrongQuestions"
-            :key="item.id"
-            class="sheet-item wrong"
-            @click="jumpToQuestion(item.index)"
-          >
-            <small>{{ typeShortLabel(item.type) }}</small>
-            <span>{{ item.index + 1 }}</span>
-          </button>
-        </div>
-        <p v-else class="form-tip">本次全对，保持状态即可。</p>
-      </section>
+      </div>
     </section>
   </div>
 </template>
@@ -377,11 +323,11 @@ const elapsedSeconds = ref(0)
 
 let timer: number | null = null
 const SYLLABUS_WEIGHT_MAP: Record<number, string> = {
-  1: '约 24%',
-  2: '约 30%',
-  3: '约 14%',
-  4: '约 16%',
-  5: '约 16%'
+  1: '约 22%',
+  2: '约 35%（毛中特 13% + 新思想 22%）',
+  3: '约 15%',
+  4: '约 15%',
+  5: '约 13%'
 }
 
 const rootCategories = computed(() => categories.value.filter((item) => !item.parentId))
@@ -415,6 +361,20 @@ const questionLocationText = computed(() => {
 const pageInfo = computed(() =>
   paper.value ? `第 ${currentIndex.value + 1} / ${paper.value.questions.length} 题` : '尚未组卷'
 )
+const questionMetaLine = computed(() => {
+  if (!currentQuestion.value) {
+    return ''
+  }
+  return [
+    `第 ${currentIndex.value + 1} 题`,
+    typeText(currentQuestion.value.type),
+    difficultyText(currentQuestion.value.difficulty),
+    sourceTypeText(currentQuestion.value.sourceType),
+    questionLocationText.value
+  ]
+    .filter(Boolean)
+    .join(' · ')
+})
 const answeredCount = computed(() => Object.keys(answerSheet.value).length)
 const correctCount = computed(() => Object.values(resultSheet.value).filter((item) => item.correct).length)
 const remainingCount = computed(() => Math.max((paper.value?.questions.length || 0) - answeredCount.value, 0))
@@ -723,7 +683,7 @@ const saveCurrentAnswer = () => {
     ...draftSheet.value,
     [currentQuestion.value.id]: normalizedAnswer.value
   }
-  message.value = '本题答案已保存'
+  message.value = '本题已暂存'
   submitting.value = false
 }
 
@@ -759,7 +719,7 @@ const saveExamRecord = async () => {
     message.value = '模拟考试已完成，成绩已写入练习历史。'
   } catch (err) {
     error.value = err instanceof Error ? err.message : '模拟考试记录保存失败'
-    message.value = '模拟考试已完成，可在当前页面继续复盘。'
+    message.value = '模拟考试已完成。'
   } finally {
     savingRecord.value = false
   }
@@ -773,7 +733,7 @@ const finishExam = async () => {
   saveCurrentAnswerSilently()
 
   if (answeredCount.value < paper.value.questions.length) {
-    error.value = '还有未作答题目，请先完成整套试卷再交卷。'
+    error.value = '还有未作答题目。'
     if (nextUnansweredIndex.value >= 0) {
       changeQuestion(nextUnansweredIndex.value)
     }

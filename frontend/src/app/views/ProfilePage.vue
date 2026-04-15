@@ -1,89 +1,81 @@
 <template>
-  <div class="page-stack">
-    <section class="hero-card compact tight-hero profile-hero">
+  <div class="page-stack profile-page">
+    <section class="panel-card page-intro-card compact-overview-card profile-overview-card">
       <div class="profile-hero-copy">
-        <p class="eyebrow">个人中心</p>
-        <h2>{{ authStore.user?.nickname || '学习者' }}</h2>
-        <p class="hero-copy">{{ authStore.user?.email || '未绑定邮箱' }}</p>
-        <div class="hero-badges">
-          <span class="tag">{{ authStore.user?.email ? '邮箱已绑定' : '邮箱未绑定' }}</span>
-          <span class="tag muted">已记录 {{ sortedHistory.length }} 次练习</span>
+        <p class="eyebrow">我的</p>
+        <div class="profile-account-line">
+          <UserAvatar :avatar-url="authStore.user?.avatarUrl" :nickname="authStore.user?.nickname" :size="72" />
+          <div>
+            <h2>{{ authStore.user?.nickname || '学习者' }}</h2>
+            <p v-if="authStore.user?.email" class="hero-copy">{{ authStore.user?.email }}</p>
+          </div>
+        </div>
+        <div class="record-meta profile-meta-row">
+          <span v-if="authStore.user?.email" class="record-pill muted">邮箱已绑定</span>
+          <span class="record-pill muted">记录 {{ sortedHistory.length }} 次</span>
+          <button class="ghost-btn small" type="button" @click="settingsOpen = true">账号设置</button>
         </div>
       </div>
 
-      <div class="hero-stats">
-        <article class="hero-stat-card">
-          <span>累计刷题</span>
-          <strong>{{ overview.totalQuestions || 0 }}</strong>
-        </article>
-        <article class="hero-stat-card">
-          <span>整体正确率</span>
-          <strong>{{ overview.totalCorrectRate || 0 }}%</strong>
-        </article>
-        <article class="hero-stat-card">
-          <span>连续练习</span>
-          <strong>{{ overview.continuousDays || 0 }} 天</strong>
-        </article>
+      <div class="hero-aside compact-overview-aside">
+        <div class="status-strip compact-overview-strip">
+          <span>累计 {{ overview.totalQuestions || 0 }} 题</span>
+          <span>正确率 {{ overview.totalCorrectRate || 0 }}%</span>
+          <span>连续 {{ overview.continuousDays || 0 }} 天</span>
+        </div>
       </div>
     </section>
 
     <p v-if="error" class="form-error">{{ error }}</p>
-    <div v-if="loading" class="panel-card empty-state">正在加载个人学习画像...</div>
+    <div v-if="loading" class="panel-card empty-state">正在加载个人数据...</div>
 
     <template v-else>
-      <section class="profile-insight-grid">
-        <article class="feature-card insight-card">
-          <span class="eyebrow">学习覆盖</span>
-          <strong>{{ coveredCategoryCount }}</strong>
-          <p>已形成正确率记录的专题数，可直接据此判断自己目前在哪些专题上有实战积累。</p>
-        </article>
-        <article class="feature-card insight-card">
-          <span class="eyebrow">最佳专题</span>
-          <strong>{{ bestCategory?.categoryName || '暂无' }}</strong>
-          <p>{{ bestCategory ? `当前正确率 ${bestCategory.correctRate}%` : '先完成几次练习，系统会自动识别。' }}</p>
-        </article>
-        <article class="feature-card insight-card">
-          <span class="eyebrow">待补专题</span>
-          <strong>{{ weakestCategory?.categoryName || '暂无' }}</strong>
-          <p>
-            {{
-              weakestCategory
-                ? `当前正确率 ${weakestCategory.correctRate}% ，建议下一轮优先回补。`
-                : '暂无专题薄弱项，继续保持。'
-            }}
-          </p>
-        </article>
-        <article class="feature-card insight-card">
-          <span class="eyebrow">最近练习</span>
-          <strong>{{ latestPracticeLabel }}</strong>
-          <p>{{ totalDurationLabel }}，最近的数据会自动沉淀到下方趋势和历史记录。</p>
-        </article>
+      <section class="panel-card">
+        <div class="compact-row-list">
+          <div class="compact-row compact-row-static">
+            <div class="compact-row-main">
+              <strong>最佳专题</strong>
+              <div class="compact-row-meta">
+                <span>{{ bestCategory?.categoryName || '-' }}</span>
+                <span>{{ bestCategory ? `正确率 ${bestCategory.correctRate}%` : '练习后更新' }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="compact-row compact-row-static">
+            <div class="compact-row-main">
+              <strong>待补专题</strong>
+              <div class="compact-row-meta">
+                <span>{{ weakestCategory?.categoryName || '-' }}</span>
+                <span>{{ weakestCategory ? `正确率 ${weakestCategory.correctRate}%` : '暂无明显短板' }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="compact-row compact-row-static">
+            <div class="compact-row-main">
+              <strong>累计投入</strong>
+              <div class="compact-row-meta">
+                <span>{{ totalDurationLabel }}</span>
+                <span>{{ latestPracticeLabel === '-' ? '暂无练习记录' : `${latestPracticeLabel} · 共 ${sortedHistory.length} 次记录` }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section class="feature-grid">
-        <RouterLink class="feature-card action-card" :to="weakestCategoryRoute">
-          <strong>继续薄弱专题</strong>
-          <p>{{ weakestCategory ? `优先回到 ${weakestCategory.categoryName} 再做一轮训练。` : '先进入专题页开始新的训练。' }}</p>
-        </RouterLink>
-        <RouterLink class="feature-card action-card" to="/mock-exam">
-          <strong>开始模拟考试</strong>
-          <p>把近期训练结果放进整卷场景里验证节奏、覆盖面和稳定性。</p>
-        </RouterLink>
-        <RouterLink class="feature-card action-card" to="/wrong-book">
-          <strong>回看错题本</strong>
-          <p>优先清空最近暴露和高频失分的题，缩短下一轮复习闭环。</p>
-        </RouterLink>
+      <section class="profile-content-stack">
+        <StatisticsChart :category-data="categoryRates" :trend-data="dailyRates" />
+        <PracticeHistory :items="sortedHistory" :categories="categories" />
       </section>
-
-      <StatisticsChart :category-data="categoryRates" :trend-data="dailyRates" />
-      <PracticeHistory :items="sortedHistory" :categories="categories" />
     </template>
+
+    <UserSettingsModal v-if="authStore.user" :open="settingsOpen" @close="settingsOpen = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import UserAvatar from '@/app/components/UserAvatar.vue'
+import UserSettingsModal from '@/app/components/UserSettingsModal.vue'
 import { getCategories } from '@/app/api/categories'
 import { getCategoryRates, getDailyRates, getOverview, getPracticeHistory } from '@/app/api/statistics'
 import { useAuthStore } from '@/app/stores/auth'
@@ -96,6 +88,7 @@ const authStore = useAuthStore()
 const categories = ref<Category[]>([])
 const loading = ref(false)
 const error = ref('')
+const settingsOpen = ref(false)
 const overview = ref<StatisticsOverview>({
   totalQuestions: 0,
   totalCorrectRate: 0,
@@ -108,7 +101,6 @@ const history = ref<PracticeRecord[]>([])
 const sortedHistory = computed(() =>
   [...history.value].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
 )
-const coveredCategoryCount = computed(() => categoryRates.value.length)
 const bestCategory = computed(() => {
   return [...categoryRates.value].sort((left, right) => {
     if (right.correctRate !== left.correctRate) {
@@ -128,7 +120,7 @@ const weakestCategory = computed(() => {
 const latestPracticeLabel = computed(() => {
   const latest = sortedHistory.value[0]
   if (!latest) {
-    return '暂无记录'
+    return '-'
   }
   return new Date(latest.createdAt).toLocaleDateString('zh-CN')
 })
@@ -144,14 +136,6 @@ const totalDurationLabel = computed(() => {
   const hours = Math.floor(minutes / 60)
   const remainMinutes = minutes % 60
   return `累计学习 ${hours} 小时 ${remainMinutes} 分`
-})
-const weakestCategoryRoute = computed(() => {
-  if (!weakestCategory.value) {
-    return '/categories'
-  }
-  return weakestCategory.value.categoryId > 0
-    ? `/practice?categoryId=${weakestCategory.value.categoryId}`
-    : '/categories'
 })
 
 const loadProfile = async () => {
@@ -177,7 +161,7 @@ const loadProfile = async () => {
     categoryRates.value = []
     dailyRates.value = []
     history.value = []
-    error.value = err instanceof Error ? err.message : '加载个人画像失败'
+    error.value = err instanceof Error ? err.message : '加载个人数据失败'
   } finally {
     loading.value = false
   }

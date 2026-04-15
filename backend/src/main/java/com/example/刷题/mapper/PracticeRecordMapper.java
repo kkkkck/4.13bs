@@ -40,4 +40,9 @@ public interface PracticeRecordMapper extends BaseMapper<PracticeRecord> {
      * 获取近期正确率趋势（按日期分组）
      */
     List<Map<String, Object>> selectDailyCorrectRate(@Param("userId") Long userId, @Param("days") Integer days);
+
+    /**
+     * 按根专题统计练习次数
+     */
+    List<Map<String, Object>> selectPracticeCountByRootCategory();
 }

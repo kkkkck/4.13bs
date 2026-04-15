@@ -27,43 +27,43 @@ const router = createRouter({
           path: 'dashboard',
           name: 'dashboard',
           component: () => import('@/app/views/DashboardPage.vue'),
-          meta: { title: '学习总览' }
+          meta: { title: '首页' }
         },
         {
           path: 'categories',
           name: 'categories',
           component: () => import('@/app/views/CategoriesPage.vue'),
-          meta: { title: '专题练习' }
+          meta: { title: '专题' }
         },
         {
           path: 'practice',
           name: 'practice',
           component: () => import('@/app/views/PracticePage.vue'),
-          meta: { title: '练习模式' }
+          meta: { title: '练习' }
         },
         {
           path: 'mock-exam',
           name: 'mock-exam',
           component: () => import('@/app/views/MockExamPage.vue'),
-          meta: { title: '模拟考试' }
+          meta: { title: '模考' }
         },
         {
           path: 'favorite',
           name: 'favorite',
           component: () => import('@/app/views/FavoritePage.vue'),
-          meta: { title: '收藏夹' }
+          meta: { title: '收藏' }
         },
         {
           path: 'wrong-book',
           name: 'wrong-book',
           component: () => import('@/app/views/WrongBookPage.vue'),
-          meta: { title: '错题本' }
+          meta: { title: '错题' }
         },
         {
           path: 'profile',
           name: 'profile',
           component: () => import('@/app/views/ProfilePage.vue'),
-          meta: { title: '个人中心' }
+          meta: { title: '我的' }
         }
       ]
     },
@@ -77,25 +77,25 @@ const router = createRouter({
           path: 'dashboard',
           name: 'admin-dashboard',
           component: () => import('@/app/views/admin/AdminDashboardPage.vue'),
-          meta: { title: '后台总览' }
+          meta: { title: '总览' }
         },
         {
           path: 'questions',
           name: 'admin-questions',
           component: () => import('@/app/views/admin/AdminQuestionsPage.vue'),
-          meta: { title: '题库管理' }
+          meta: { title: '题库' }
         },
         {
           path: 'categories',
           name: 'admin-categories',
           component: () => import('@/app/views/admin/AdminCategoriesPage.vue'),
-          meta: { title: '专题管理' }
+          meta: { title: '专题' }
         },
         {
           path: 'users',
           name: 'admin-users',
           component: () => import('@/app/views/admin/AdminUsersPage.vue'),
-          meta: { title: '用户管理', requiresSuperAdmin: true }
+          meta: { title: '用户', requiresSuperAdmin: true }
         }
       ]
     },
@@ -113,7 +113,7 @@ router.beforeEach(async (to) => {
   authStore.hydrate()
 
   if (to.meta.title) {
-    document.title = `${String(to.meta.title)} | 考研政治刷题台`
+    document.title = `${String(to.meta.title)} | 刷题`
   }
 
   if (to.meta.public && authStore.isLoggedIn && (to.path === '/login' || to.path === '/register')) {

@@ -4,7 +4,7 @@
       <div class="panel-head">
         <div>
           <h2>用户管理</h2>
-          <p>把筛选、活跃概览和账号维护放在同一块面板里，降低后台切换成本。</p>
+          <p>集中处理筛选、批量操作和账号维护。</p>
         </div>
       </div>
 
@@ -18,9 +18,8 @@
         />
         <div class="row-actions">
           <button class="ghost-btn" @click="searchUsers">搜索</button>
-          <button class="ghost-btn" @click="resetFilters">重置</button>
           <button class="ghost-btn" :class="{ active: filtersCollapsed }" @click="toggleFiltersCollapsed">
-            {{ filtersCollapsed ? '展开筛选' : '收起筛选' }}
+            {{ filtersCollapsed ? '展开' : '收起' }}
           </button>
           <div class="batch-toolbar">
             <select v-model="batchAction" class="input select">
@@ -30,147 +29,70 @@
               <option value="setUser">批量设为普通用户</option>
             </select>
             <button class="ghost-btn" :disabled="!selectedIds.length || batchProcessing" @click="handleBatchProcess">
-              {{ batchProcessing ? '批量处理中...' : `批量处理（${selectedIds.length}）` }}
+              {{ batchProcessing ? '处理中...' : `批量处理（${selectedIds.length}）` }}
             </button>
           </div>
         </div>
       </div>
 
-      <div v-show="!filtersCollapsed" class="filter-block-grid compact">
-        <article class="feature-card filter-block compact">
-          <div class="category-topline">
-            <strong>角色筛选</strong>
-            <small>{{ roleFilterLabel }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button class="chapter-pill action" :class="{ active: filters.role === -1 }" @click="setRoleFilter(-1)">
-              全部角色
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.role === 0 }" @click="setRoleFilter(0)">
-              普通用户
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.role === 1 }" @click="setRoleFilter(1)">
-              管理员
-            </button>
-          </div>
-        </article>
+      <div v-show="!filtersCollapsed" class="admin-filter-toolbar">
+        <label class="field-block toolbar-field">
+          <span>角色</span>
+          <select v-model.number="filters.role" class="input select">
+            <option :value="-1">全部角色</option>
+            <option :value="0">普通用户</option>
+            <option :value="1">管理员</option>
+          </select>
+        </label>
 
-        <article class="feature-card filter-block compact">
-          <div class="category-topline">
-            <strong>状态筛选</strong>
-            <small>{{ statusFilterLabel }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button class="chapter-pill action" :class="{ active: filters.status === -1 }" @click="setStatusFilter(-1)">
-              全部状态
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.status === 1 }" @click="setStatusFilter(1)">
-              正常
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.status === 0 }" @click="setStatusFilter(0)">
-              禁用
-            </button>
-          </div>
-        </article>
+        <label class="field-block toolbar-field">
+          <span>状态</span>
+          <select v-model.number="filters.status" class="input select">
+            <option :value="-1">全部状态</option>
+            <option :value="1">正常</option>
+            <option :value="0">禁用</option>
+          </select>
+        </label>
 
-        <article class="feature-card filter-block">
-          <div class="category-topline">
-            <strong>活跃筛选</strong>
-            <small>{{ activityFilterLabel }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button class="chapter-pill action" :class="{ active: filters.activityStatus === 'all' }" @click="setActivityFilter('all')">
-              全部活跃状态
-            </button>
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.activityStatus === 'active24h' }"
-              @click="setActivityFilter('active24h')"
-            >
-              24 小时内活跃
-            </button>
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.activityStatus === 'active7d' }"
-              @click="setActivityFilter('active7d')"
-            >
-              7 天内活跃
-            </button>
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.activityStatus === 'inactive7d' }"
-              @click="setActivityFilter('inactive7d')"
-            >
-              7 天未活跃
-            </button>
-          </div>
-        </article>
+        <label class="field-block toolbar-field">
+          <span>活跃</span>
+          <select v-model="filters.activityStatus" class="input select">
+            <option value="all">全部活跃状态</option>
+            <option value="active24h">24 小时内活跃</option>
+            <option value="active7d">7 天内活跃</option>
+            <option value="inactive7d">7 天未活跃</option>
+          </select>
+        </label>
 
-        <article class="feature-card filter-block">
-          <div class="category-topline">
-            <strong>排序方式</strong>
-            <small>{{ sortSummary }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.sortField === 'createdAt' }"
-              @click="setSortField('createdAt')"
-            >
-              注册时间
-            </button>
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.sortField === 'lastSeenAt' }"
-              @click="setSortField('lastSeenAt')"
-            >
-              最近活跃
-            </button>
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.sortField === 'nickname' }"
-              @click="setSortField('nickname')"
-            >
-              用户名
-            </button>
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.sortField === 'role' }"
-              @click="setSortField('role')"
-            >
-              角色
-            </button>
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.sortField === 'status' }"
-              @click="setSortField('status')"
-            >
-              状态
-            </button>
-          </div>
-          <div class="chapter-pills">
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.sortOrder === 'desc' }"
-              @click="setSortOrder('desc')"
-            >
-              倒序
-            </button>
-            <button
-              class="chapter-pill action"
-              :class="{ active: filters.sortOrder === 'asc' }"
-              @click="setSortOrder('asc')"
-            >
-              正序
-            </button>
-          </div>
-        </article>
+        <label class="field-block toolbar-field">
+          <span>排序字段</span>
+          <select v-model="filters.sortField" class="input select">
+            <option value="createdAt">注册时间</option>
+            <option value="lastSeenAt">最近活跃</option>
+            <option value="nickname">用户名</option>
+            <option value="role">角色</option>
+            <option value="status">状态</option>
+          </select>
+        </label>
+
+        <label class="field-block toolbar-field">
+          <span>排序方向</span>
+          <select v-model="filters.sortOrder" class="input select">
+            <option value="desc">倒序</option>
+            <option value="asc">正序</option>
+          </select>
+        </label>
+
+        <div class="toolbar-actions">
+          <button class="ghost-btn" @click="resetFilters">清空筛选</button>
+          <button class="primary-btn" @click="searchUsers">应用筛选</button>
+        </div>
       </div>
 
       <div class="status-strip">
-        <span>当前筛选：{{ filterSummary }}</span>
+        <span>{{ filterSummary }}</span>
         <span>本页 {{ users.length }} 人 / 总计 {{ totalItems }} 人</span>
-        <span>已勾选 {{ selectedIds.length }} 人（支持跨页）</span>
+        <span>已勾选 {{ selectedIds.length }} 人</span>
         <button v-if="selectedIds.length" class="ghost-btn small" @click="clearSelection">清空勾选</button>
       </div>
 
@@ -190,13 +112,13 @@
                   @change="toggleSelectAll($event)"
                 />
               </th>
-              <th>ID</th>
+              <th class="col-id">ID</th>
               <th class="col-wide">用户</th>
-              <th>最近活跃</th>
-              <th>角色</th>
-              <th>状态</th>
-              <th>注册时间</th>
-              <th>操作</th>
+              <th class="table-time-cell">最近活跃</th>
+              <th class="table-status-cell">角色</th>
+              <th class="table-status-cell">状态</th>
+              <th class="table-time-cell">注册时间</th>
+              <th class="table-actions-cell">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -208,31 +130,31 @@
                   @change="toggleUserSelection(user.id)"
                 />
               </td>
-              <td>{{ user.id }}</td>
+              <td class="col-id">{{ user.id }}</td>
               <td class="col-wide">
                 <div class="table-primary-cell">
                   <strong>{{ user.nickname || '-' }}</strong>
                   <small>{{ user.email }}</small>
                 </div>
               </td>
-              <td>
+              <td class="table-time-cell">
                 <div class="table-primary-cell">
                   <strong>{{ formatTime(user.lastSeenAt) }}</strong>
                   <small>{{ lastSeenHint(user.lastSeenAt) }}</small>
                 </div>
               </td>
-              <td>
+              <td class="table-status-cell">
                 <span class="record-pill" :class="{ success: user.role === 1 }">
                   {{ user.role === 1 ? '管理员' : '普通用户' }}
                 </span>
               </td>
-              <td>
+              <td class="table-status-cell">
                 <span class="record-pill" :class="user.status === 1 ? 'success' : 'danger'">
                   {{ user.status === 1 ? '正常' : '禁用' }}
                 </span>
               </td>
-              <td>{{ user.createdAt ? new Date(user.createdAt).toLocaleString('zh-CN') : '-' }}</td>
-              <td>
+              <td class="table-time-cell">{{ user.createdAt ? new Date(user.createdAt).toLocaleString('zh-CN') : '-' }}</td>
+              <td class="table-actions-cell">
                 <div class="row-actions">
                   <button class="ghost-btn small" @click="openEdit(user)">编辑</button>
                   <button
@@ -249,7 +171,7 @@
         </table>
       </div>
 
-      <div v-else class="empty-state">当前筛选条件下没有用户。</div>
+      <div v-else class="empty-state">暂无符合条件的用户。</div>
 
       <div v-if="totalItems > 0" class="pagination-bar">
         <span class="pagination-meta">第 {{ currentPage }} / {{ totalPages }} 页，共 {{ totalItems }} 个用户</span>
@@ -273,7 +195,7 @@
         <div class="panel-head">
           <div>
             <h3>编辑用户</h3>
-            <p>当前账号：{{ editingEmail || '-' }}</p>
+            <p v-if="editingEmail">{{ editingEmail }}</p>
           </div>
           <button class="ghost-btn small" type="button" @click="resetEditor">关闭</button>
         </div>
@@ -313,7 +235,7 @@
         <div class="panel-head compact">
           <div>
             <h3>批量处理用户</h3>
-            <p>批量操作会立即生效，请确认目标用户范围和动作无误。</p>
+            <p>将对已勾选用户执行批量操作，请确认。</p>
           </div>
         </div>
 
@@ -323,7 +245,6 @@
             <div class="record-meta">
               <span class="record-pill">已勾选 {{ selectedIds.length }} 人</span>
               <span class="record-pill muted">当前页 {{ users.length }} 人</span>
-              <span class="record-pill muted">支持跨页勾选</span>
             </div>
           </article>
 
@@ -406,7 +327,7 @@ const filterSummary = computed(() => {
     active7d: '7 天内活跃',
     inactive7d: '7 天未活跃'
   }
-  const keywordText = filters.keyword ? `关键词：${filters.keyword}` : '无关键词'
+  const keywordText = filters.keyword ? `关键词 ${filters.keyword}` : '未设关键词'
   return `${roleText} · ${statusText} · ${activityMap[filters.activityStatus]} · ${sortSummary.value} · ${keywordText}`
 })
 const batchActionLabel = computed(() => {
@@ -423,44 +344,17 @@ const sortSummary = computed(() => {
   const orderLabel = sortOrderLabelMap[filters.sortOrder] || '倒序'
   return `${fieldLabel}${orderLabel}`
 })
-const roleFilterLabel = computed(() => {
-  if (filters.role === 1) {
-    return '仅管理员'
-  }
-  if (filters.role === 0) {
-    return '仅普通用户'
-  }
-  return '全部角色'
-})
-const statusFilterLabel = computed(() => {
-  if (filters.status === 1) {
-    return '仅正常'
-  }
-  if (filters.status === 0) {
-    return '仅禁用'
-  }
-  return '全部状态'
-})
-const activityFilterLabel = computed(() => {
-  const map: Record<string, string> = {
-    all: '全部活跃状态',
-    active24h: '24 小时内活跃',
-    active7d: '7 天内活跃',
-    inactive7d: '7 天未活跃'
-  }
-  return map[filters.activityStatus] || '全部活跃状态'
-})
 
 const formatTime = (value?: string | null) => {
   if (!value) {
-    return '未活跃'
+    return '-'
   }
   return new Date(value).toLocaleString('zh-CN')
 }
 
 const lastSeenHint = (value?: string | null) => {
   if (!value) {
-    return '尚无停留记录'
+    return '暂无记录'
   }
   const diff = Date.now() - new Date(value).getTime()
   const hours = Math.floor(diff / (60 * 60 * 1000))
@@ -622,52 +516,6 @@ const searchUsers = async () => {
   currentPage.value = 1
   clearSelection()
   await loadUsers({ preserveSelection: false })
-}
-
-const applyQuickFilter = async () => {
-  currentPage.value = 1
-  clearSelection()
-  await loadUsers({ preserveSelection: false })
-}
-
-const setRoleFilter = async (role: number) => {
-  if (filters.role === role) {
-    return
-  }
-  filters.role = role
-  await applyQuickFilter()
-}
-
-const setStatusFilter = async (status: number) => {
-  if (filters.status === status) {
-    return
-  }
-  filters.status = status
-  await applyQuickFilter()
-}
-
-const setActivityFilter = async (activityStatus: string) => {
-  if (filters.activityStatus === activityStatus) {
-    return
-  }
-  filters.activityStatus = activityStatus
-  await applyQuickFilter()
-}
-
-const setSortField = async (sortField: string) => {
-  if (filters.sortField === sortField) {
-    return
-  }
-  filters.sortField = sortField
-  await applyQuickFilter()
-}
-
-const setSortOrder = async (sortOrder: string) => {
-  if (filters.sortOrder === sortOrder) {
-    return
-  }
-  filters.sortOrder = sortOrder
-  await applyQuickFilter()
 }
 
 const toggleFiltersCollapsed = () => {

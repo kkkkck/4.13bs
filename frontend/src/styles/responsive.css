@@ -1,0 +1,207 @@
+﻿@media (max-width: 1100px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .shell-sidebar {
+    padding-bottom: 12px;
+  }
+
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-password-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-action-btn,
+  .settings-inline-btn {
+    width: 100%;
+  }
+
+  .profile-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .shell-main,
+  .shell-sidebar,
+  .auth-page,
+  .auth-hero,
+  .auth-card {
+    padding: 18px;
+  }
+
+  .hero-card,
+  .panel-card,
+  .metric-card {
+    padding: 18px;
+  }
+
+  .shell-header,
+  .practice-header,
+  .panel-head,
+  .pagination-bar,
+  .history-item {
+    display: grid;
+  }
+
+  .editor-grid,
+  .option-grid,
+  .dashboard-metrics,
+  .hero-stats,
+  .profile-chart-grid,
+  .profile-overview-grid,
+  .mock-config-grid,
+  .practice-layout,
+  .exam-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-form,
+  .password-field,
+  .auth-switch,
+  .auth-status-grid,
+  .sheet-summary-grid,
+  .page-intro-card,
+  .filter-toolbar-grid,
+  .filter-block-grid,
+  .insight-grid,
+  .dashboard-topic-grid,
+  .question-filter-toolbar,
+  .admin-filter-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    justify-content: flex-start;
+  }
+
+  .status-strip {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .compact-overview-aside {
+    justify-items: stretch;
+  }
+
+  .compact-row,
+  .overview-list-row {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-row-actions {
+    justify-content: flex-start;
+  }
+
+  .dashboard-list-tools {
+    justify-items: stretch;
+  }
+
+  .dashboard-inline-meta,
+  .dashboard-list-stats,
+  .dashboard-topic-header,
+  .dashboard-topic-row,
+  .overview-table-header,
+  .overview-table-row {
+    grid-template-columns: 1fr;
+    justify-content: flex-start;
+  }
+
+  .dashboard-topic-actions {
+    justify-content: flex-start;
+  }
+
+  .list-card.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .list-card.compact .list-actions {
+    justify-content: flex-start;
+  }
+
+  .hero-card.band-hero .row-actions {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .hot-topic-list-inline {
+    grid-template-columns: 1fr;
+  }
+
+  .history-record-top {
+    display: grid;
+  }
+
+  .field-span-2 {
+    grid-column: span 1;
+  }
+
+  .favorite-page {
+    gap: 8px;
+  }
+
+  .favorite-content-panel {
+    min-height: auto;
+  }
+
+  .settings-dialog {
+    width: 100%;
+  }
+
+  .support-line {
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .auth-form > .primary-btn,
+  .inline-form > .ghost-btn,
+  .modal-dialog .row-actions > .ghost-btn,
+  .modal-dialog .row-actions > .primary-btn,
+  .question-actions > .ghost-btn,
+  .question-actions > .primary-btn {
+    width: 100%;
+  }
+
+  .table-actions-cell .row-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .settings-account-panel,
+  .settings-section-card,
+  .settings-email-dialog {
+    padding: 16px;
+  }
+
+  .settings-account-top,
+  .settings-section-head,
+  .settings-row-actions {
+    display: grid;
+  }
+
+  .settings-scroll {
+    max-height: calc(100vh - 144px);
+  }
+
+  .settings-form-grid,
+  .settings-password-grid,
+  .settings-inline-field {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-submask {
+    padding: 12px;
+  }
+}

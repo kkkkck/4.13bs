@@ -3,6 +3,7 @@ package com.example.刷题.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.刷题.entity.Category;
 import com.example.刷题.mapper.CategoryMapper;
+import com.example.刷题.mapper.PracticeRecordMapper;
 import com.example.刷题.mapper.QuestionMapper;
 import com.example.刷题.mapper.UserMapper;
 import com.example.刷题.service.UserActivityService;
@@ -22,17 +23,20 @@ import java.util.Map;
 public class AdminStatisticsController {
 
     private final QuestionMapper questionMapper;
+    private final PracticeRecordMapper practiceRecordMapper;
     private final CategoryMapper categoryMapper;
     private final UserMapper userMapper;
     private final UserActivityService userActivityService;
 
     public AdminStatisticsController(
             QuestionMapper questionMapper,
+            PracticeRecordMapper practiceRecordMapper,
             CategoryMapper categoryMapper,
             UserMapper userMapper,
             UserActivityService userActivityService
     ) {
         this.questionMapper = questionMapper;
+        this.practiceRecordMapper = practiceRecordMapper;
         this.categoryMapper = categoryMapper;
         this.userMapper = userMapper;
         this.userActivityService = userActivityService;
@@ -45,6 +49,7 @@ public class AdminStatisticsController {
         Long totalQuestions = questionMapper.selectCount(null);
         result.put("totalQuestions", totalQuestions);
         result.put("categoryStats", questionMapper.selectQuestionCountByCategory());
+        result.put("hotTopicStats", practiceRecordMapper.selectPracticeCountByRootCategory());
         result.put("typeStats", questionMapper.selectQuestionCountByType());
 
         Long totalCategories = categoryMapper.selectCount(

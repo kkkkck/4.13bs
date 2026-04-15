@@ -56,21 +56,9 @@
 
       <div v-else-if="currentQuestion" class="exam-layout practice-layout">
         <div :key="`question-${currentQuestion.id}`" class="panel-card question-panel">
-          <div class="question-meta">
-            <span class="tag muted">第 {{ currentIndex + 1 }} 题</span>
-            <span class="tag">{{ difficultyText(currentQuestion.difficulty) }}</span>
-            <span class="tag muted">{{ typeText(currentQuestion.type) }}</span>
-            <span class="tag muted">{{ sourceTypeText(currentQuestion.sourceType) }}</span>
-            <span v-if="currentChapter" class="tag muted">{{ currentChapter.name }}</span>
-            <span v-if="currentQuestion.source" class="tag muted">{{ currentQuestion.source }}</span>
-          </div>
+          <div class="question-kicker">{{ questionMetaLine }}</div>
 
           <h3 class="question-title">{{ currentQuestion.content }}</h3>
-          <p v-if="currentQuestion.tags" class="question-tags">{{ currentQuestion.tags }}</p>
-
-          <div v-if="isMultipleChoice" class="selected-answer">
-            多选题支持反复勾选，确认组合后再提交；已暂存的选择会在切题时保留。
-          </div>
 
           <div v-if="isChoiceQuestion" :key="`opt-${currentQuestion.id}`" class="option-grid">
             <button
@@ -115,8 +103,6 @@
             </button>
           </div>
 
-          <p class="form-tip">快捷键：Ctrl / Cmd + Enter 提交，← 返回上一题，→ 进入下一题。</p>
-
           <div
             v-if="currentResult"
             class="result-box"
@@ -146,10 +132,29 @@
           <article class="feature-card summary-card">
             <div class="sheet-card-head">
               <div>
-                <strong>练习答题卡</strong>
-                <p class="form-tip">按题型分组展示，组内按题号小方块跳转。</p>
+                <strong>答题卡</strong>
+                <p class="form-tip">{{ currentChapter ? currentChapter.name : currentRootCategory?.name || practiceModeLabel }}</p>
               </div>
               <span class="tag muted">{{ answeredCount }}/{{ questions.length }}</span>
+            </div>
+
+            <div class="sheet-summary-grid">
+              <div class="summary-metric">
+                <span>已作答</span>
+                <strong>{{ answeredCount }}</strong>
+              </div>
+              <div class="summary-metric">
+                <span>答对</span>
+                <strong>{{ correctCount }}</strong>
+              </div>
+              <div class="summary-metric">
+                <span>待完成</span>
+                <strong>{{ remainingQuestions }}</strong>
+              </div>
+              <div class="summary-metric">
+                <span>正确率</span>
+                <strong>{{ currentAccuracy }}%</strong>
+              </div>
             </div>
 
             <div class="sheet-legend">
@@ -158,34 +163,6 @@
               <span class="sheet-legend-item correct">答对</span>
               <span class="sheet-legend-item wrong">答错</span>
               <span class="sheet-legend-item multiple">多选</span>
-            </div>
-          </article>
-
-          <article class="feature-card summary-card">
-            <div class="category-topline">
-              <strong>本轮概览</strong>
-              <small>{{ practiceModeLabel }}</small>
-            </div>
-            <p class="form-tip">
-              {{ currentChapter ? `当前章节：${currentChapter.name}` : '当前按专题维度练习。' }}
-            </p>
-            <div class="sidebar-list">
-              <div class="category-topline">
-                <span>已作答</span>
-                <strong>{{ answeredCount }}</strong>
-              </div>
-              <div class="category-topline">
-                <span>答对</span>
-                <strong>{{ correctCount }}</strong>
-              </div>
-              <div class="category-topline">
-                <span>待完成</span>
-                <strong>{{ remainingQuestions }}</strong>
-              </div>
-              <div class="category-topline">
-                <span>正确率</span>
-                <strong>{{ currentAccuracy }}%</strong>
-              </div>
             </div>
           </article>
 
@@ -367,9 +344,29 @@ const currentSourceTypeLabel = computed(() => {
 const pageInfo = computed(() =>
   questions.value.length ? `第 ${currentIndex.value + 1} / ${questions.value.length} 题` : '暂无题目'
 )
+const questionMetaLine = computed(() => {
+  if (!currentQuestion.value) {
+    return ''
+  }
+  const parts = [
+    `第 ${currentIndex.value + 1} 题`,
+    typeText(currentQuestion.value.type),
+    difficultyText(currentQuestion.value.difficulty),
+    sourceTypeText(currentQuestion.value.sourceType)
+  ]
+  if (currentChapter.value?.name) {
+    parts.push(currentChapter.value.name)
+  } else if (currentRootCategory.value?.name) {
+    parts.push(currentRootCategory.value.name)
+  }
+  if (currentQuestion.value.source) {
+    parts.push(currentQuestion.value.source)
+  }
+  return parts.join(' · ')
+})
 const emptyStateMessage = computed(() =>
   requestedQuestionIds.value.length
-    ? '待重练题目不存在或已下线。'
+    ? '暂无可重练题目，可能已下线或被移除。'
     : practiceSourceType.value === 1
     ? '当前专题下暂无真题，请先切回混合随机或补充真题。'
     : practiceSourceType.value === 2

@@ -1,11 +1,9 @@
 <template>
   <div class="auth-page">
     <section class="auth-hero">
-      <p class="eyebrow">创建账号</p>
-      <h1>先完成账号注册，再把刷题过程沉淀成可复盘、可追踪、可长期使用的学习轨迹。</h1>
-      <p>
-        注册使用邮箱验证码。验证码有效期为 <strong>5 分钟</strong>；用户名会作为你的登录用户名使用。
-      </p>
+      <p class="eyebrow">注册</p>
+      <h1>先注册，再开始做题。</h1>
+      <p>用邮箱验证码完成注册。</p>
 
       <div class="auth-list">
         <span class="tag">邮箱验证码</span>
@@ -13,32 +11,13 @@
         <span class="tag">60 秒后可重发</span>
         <span class="tag">注册后自动登录</span>
       </div>
-
-      <div class="auth-helper-grid">
-        <article class="auth-helper-card">
-          <strong>第 1 步：发送验证码</strong>
-          <p>先填写邮箱，系统会把验证码发送到邮箱；开发环境下会直接显示调试验证码。</p>
-        </article>
-        <article class="auth-helper-card">
-          <strong>第 2 步：完成注册</strong>
-          <p>填写用户名、密码和验证码后即可提交，注册完成会自动登录并跳转到学习台。</p>
-        </article>
-        <article class="auth-helper-card">
-          <strong>第 3 步：开始练习</strong>
-          <p>登录后即可进入专题、章节、模拟考试与错题复盘，不需要额外初始化账号信息。</p>
-        </article>
-      </div>
-
-      <div class="auth-note">
-        如果你之前看见过“7 天”，那是登录态（JWT）时长，不是邮箱验证码。验证码现在统一按 5 分钟失效。
-      </div>
     </section>
 
     <section class="auth-card">
       <div class="panel-head compact">
         <div>
-          <h2>创建账号</h2>
-          <p>注册完成后会自动登录并跳转到学习控制台。</p>
+          <h2>注册</h2>
+          <p>注册后会自动登录。</p>
         </div>
       </div>
 
@@ -46,13 +25,13 @@
         <label class="field-block">
           <span>用户名</span>
           <input v-model.trim="form.nickname" class="input" type="text" placeholder="请输入登录用户名" />
-          <small class="form-tip">用户名需保持唯一，后续登录时可直接使用。</small>
+          <small class="form-tip">用户名需保持唯一，后续可直接拿来登录。</small>
         </label>
 
         <label class="field-block">
           <span>邮箱</span>
           <input v-model.trim="form.email" class="input" type="email" placeholder="name@example.com" />
-          <small class="form-tip">邮箱会自动按小写处理，避免验证码和登录匹配失败。</small>
+          <small class="form-tip">邮箱会自动转成小写。</small>
         </label>
 
         <label class="field-block">
@@ -62,8 +41,9 @@
               v-model="form.password"
               class="input"
               :type="passwordVisible ? 'text' : 'password'"
-              placeholder="至少 6 位密码"
+              placeholder="6-32 位密码"
               autocomplete="new-password"
+              maxlength="32"
             />
             <button class="ghost-btn small password-toggle" type="button" @click="passwordVisible = !passwordVisible">
               {{ passwordVisible ? '隐藏' : '显示' }}
@@ -96,7 +76,7 @@
           <strong>开发环境验证码</strong>
           <div class="dev-code-row">
             <span>{{ debugCode }}</span>
-            <button class="ghost-btn small" type="button" @click="fillDebugCode">一键填入</button>
+            <button class="ghost-btn small" type="button" @click="fillDebugCode">填入验证码</button>
           </div>
           <small>当前环境未启用真实邮箱发送，因此会直接展示验证码。</small>
         </div>
@@ -111,7 +91,7 @@
 
       <div class="support-line">
         <span>已经有账号？</span>
-        <RouterLink to="/login">返回登录</RouterLink>
+        <RouterLink to="/login">去登录</RouterLink>
       </div>
     </section>
   </div>
@@ -150,7 +130,7 @@ const normalizedEmail = computed(() => form.email.trim().toLowerCase())
 const normalizedNickname = computed(() => form.nickname.trim())
 const canSendCode = computed(() => !sendingCode.value && countdown.value === 0 && isEmailValid(normalizedEmail.value))
 const deliveryStatus = computed(() =>
-  mailEnabled.value ? '验证码将发送到你的邮箱' : '当前环境会直接显示调试验证码'
+  mailEnabled.value ? '验证码将发送到你的邮箱' : '当前环境会展示调试验证码'
 )
 const expiresText = computed(() => `${Math.max(1, Math.round(expiresInSeconds.value / 60))} 分钟内有效`)
 
@@ -228,8 +208,8 @@ const handleSubmit = async () => {
     return
   }
 
-  if (form.password.length < 6) {
-    error.value = '密码长度至少 6 位'
+  if (form.password.length < 6 || form.password.length > 32) {
+    error.value = '密码长度需在 6 到 32 位之间'
     return
   }
 

@@ -4,12 +4,12 @@
       <div class="panel-head">
         <div>
           <h2>专题与章节</h2>
-          <p>专题现在支持继续向下拆章节，模拟考试也会按这里的层级和题量分布抽题。</p>
+          <p>这里集中管理专题、章节和练习层级。</p>
         </div>
 
         <div class="row-actions">
           <button class="ghost-btn" :class="{ active: chapterListCollapsed }" @click="toggleChapterListCollapsed">
-            {{ chapterListCollapsed ? '展开章节' : '收起章节' }}
+            {{ chapterListCollapsed ? '展开' : '收起' }}
           </button>
           <button class="ghost-btn" @click="openCreateChapter">新增章节</button>
           <button class="primary-btn" @click="openCreateRoot">新增专题</button>
@@ -29,7 +29,6 @@
         <span>专题 {{ filteredRootCategories.length }} / {{ rootCategories.length }}</span>
         <span>章节 {{ chapterCount }}</span>
         <span>启用专题 {{ enabledRootCount }}</span>
-        <span>{{ chapterListCollapsed ? '章节视图已折叠' : '章节视图已展开' }}</span>
       </div>
 
       <p v-if="message" class="form-success">{{ message }}</p>
@@ -52,7 +51,7 @@
             </div>
           </div>
 
-          <p>{{ item.description || '暂无专题描述' }}</p>
+          <p v-if="item.description">{{ item.description }}</p>
 
           <div class="record-meta">
             <span class="record-pill">{{ item.practiceMode === 2 ? '章节练习模式' : '专题练习模式' }}</span>
@@ -65,7 +64,7 @@
               <span class="eyebrow">章节列表</span>
               <div class="row-actions">
                 <span class="tag muted">{{ chaptersOf(item.id).length }} 个章节</span>
-                <button class="ghost-btn small" @click="openChapterManager(item)">统一管理</button>
+                <button class="ghost-btn small" @click="openChapterManager(item)">管理</button>
               </div>
             </div>
 
@@ -77,20 +76,18 @@
                     {{ chapter.status === 1 ? '启用' : '停用' }}
                   </span>
                 </div>
-                <p>{{ chapter.description || '暂无章节描述' }}</p>
                 <div class="record-meta">
                   <span class="record-pill muted">排序 {{ chapter.sort || 0 }}</span>
-                  <span class="record-pill">自动按章节练习处理</span>
                 </div>
               </article>
             </div>
 
-            <div v-else class="form-tip">当前专题还没有拆分章节，可直接点击“统一管理”后新增章节。</div>
+            <div v-else class="form-tip">当前专题暂无章节。</div>
           </div>
         </article>
       </div>
 
-      <div v-else class="empty-state">当前筛选下没有专题。</div>
+      <div v-else class="empty-state">暂无符合条件的专题。</div>
     </section>
 
     <div v-if="showEditor" class="modal-mask" @click.self="closeEditor">
@@ -98,36 +95,12 @@
         <div class="panel-head">
           <div>
             <h3>{{ editorTitle }}</h3>
-            <p>
-              {{
-                isChapterForm
-                  ? '章节会归属在某个专题下，练习与组卷都会按章节入口处理。'
-                  : '专题可以继续拆章节，也可以直接作为整组练习入口。'
-              }}
-            </p>
+            <p>{{ isChapterForm ? '章节必须归属某个专题。' : '专题可继续向下拆章节。' }}</p>
           </div>
           <button class="ghost-btn small" type="button" @click="closeEditor">关闭</button>
         </div>
 
         <div class="modal-content-scroll modal-body-stack">
-          <section class="insight-grid">
-            <article class="feature-card insight-card">
-              <span class="eyebrow">当前类型</span>
-              <strong>{{ isChapterForm ? '章节' : '专题' }}</strong>
-              <p>{{ isChapterForm ? '保存后会自动按章节模式处理。' : '可继续向下拆出章节入口。' }}</p>
-            </article>
-            <article class="feature-card insight-card">
-              <span class="eyebrow">父级归属</span>
-              <strong>{{ currentParentLabel }}</strong>
-              <p>{{ isChapterForm ? '章节必须归属某个专题。' : '根专题会直接出现在前台专题页。' }}</p>
-            </article>
-            <article class="feature-card insight-card">
-              <span class="eyebrow">当前状态</span>
-              <strong>{{ form.status === 1 ? '启用' : '停用' }}</strong>
-              <p>停用后不会出现在前台训练入口，也不会参与模拟组卷。</p>
-            </article>
-          </section>
-
           <form class="editor-grid" @submit.prevent="handleSave">
             <label class="field-block">
               <span>{{ isChapterForm ? '章节名称' : '专题名称' }}</span>
@@ -165,11 +138,6 @@
               </select>
             </label>
 
-            <div v-if="isChapterForm" class="field-block">
-              <span>节点类型</span>
-              <div class="selected-answer">当前为章节节点，保存时会自动按章节模式处理。</div>
-            </div>
-
             <label class="field-block field-span-2">
               <span>{{ isChapterForm ? '章节描述' : '专题描述' }}</span>
               <textarea v-model="form.description" class="textarea" rows="4" />
@@ -185,7 +153,7 @@
             <div class="category-topline">
               <div>
                 <strong>本专题章节管理</strong>
-                <p class="form-tip">可直接在当前弹窗里新增、编辑或删除该专题下的章节。</p>
+                <p class="form-tip">可直接在这里新增、编辑或删除章节。</p>
               </div>
               <button class="ghost-btn small" @click="openCreateChapterForParent(editingRootTopic.id, true)">
                 新增章节
@@ -200,10 +168,8 @@
                     {{ chapter.status === 1 ? '启用' : '停用' }}
                   </span>
                 </div>
-                <p>{{ chapter.description || '暂无章节描述' }}</p>
                 <div class="record-meta">
                   <span class="record-pill muted">排序 {{ chapter.sort || 0 }}</span>
-                  <span class="record-pill">自动按章节练习处理</span>
                 </div>
                 <div class="row-actions">
                   <button class="ghost-btn small" @click="openEdit(chapter, true)">编辑章节</button>
@@ -211,7 +177,7 @@
                 </div>
               </article>
             </div>
-            <p v-else class="form-tip">当前专题还没有章节，点击“新增章节”即可在此继续配置。</p>
+            <p v-else class="form-tip">当前专题暂无章节。</p>
           </section>
         </div>
       </section>
@@ -222,7 +188,7 @@
         <div class="panel-head compact">
           <div>
             <h3>{{ pendingDeleteLabel }}</h3>
-            <p>如果下面仍有关联题目或章节，系统会继续拦截删除。</p>
+            <p>删除后不可恢复；如仍有关联题目或章节，系统会拦截删除。</p>
           </div>
         </div>
 
@@ -237,7 +203,7 @@
                 {{ pendingDeleteCategory.status === 1 ? '启用' : '停用' }}
               </span>
             </div>
-            <p>{{ pendingDeleteCategory.description || '暂无描述' }}</p>
+            <p v-if="pendingDeleteCategory.description">{{ pendingDeleteCategory.description }}</p>
           </article>
 
           <div class="row-actions confirm-actions">
@@ -317,12 +283,6 @@ const editingRootTopic = computed(() => {
 const editingRootChapters = computed(() =>
   editingRootTopic.value ? chaptersOf(editingRootTopic.value.id) : []
 )
-const currentParentLabel = computed(() => {
-  if (!form.parentId) {
-    return '顶层专题'
-  }
-  return parentOptions.value.find((item) => item.id === form.parentId)?.name || '已选父级专题'
-})
 const pendingDeleteLabel = computed(() => (pendingDeleteCategory.value?.parentId ? '删除章节' : '删除专题'))
 const pendingDeleteParentName = computed(() => {
   const parentId = pendingDeleteCategory.value?.parentId

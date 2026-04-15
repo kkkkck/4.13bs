@@ -4,15 +4,12 @@
       <div class="panel-head">
         <div>
           <h2>收藏内容</h2>
-          <p>优先处理你真正想反复看的题，而不是把收藏夹变成第二个题库。</p>
         </div>
       </div>
 
       <div class="status-strip">
         <span>收藏 {{ items.length }}</span>
         <span>可回练 {{ practiceReadyCount }}</span>
-        <span>带解析 {{ withAnalysisCount }}</span>
-        <span>可追溯来源 {{ withSourceCount }}</span>
         <span>最近收藏 {{ latestFavoriteLabel }}</span>
       </div>
 
@@ -28,14 +25,13 @@
               <div class="record-meta">
                 <span class="record-pill">{{ formatTime(item.record.createdAt) }}</span>
                 <span v-if="item.question" class="record-pill">{{ difficultyText(item.question.difficulty) }}</span>
+                <span v-if="item.question?.analysis" class="record-pill muted">带解析</span>
               </div>
             </div>
 
-            <p>{{ item.question?.analysis || '这道题暂时还没有解析，建议补充后再放入高频复习池。' }}</p>
-
             <div class="record-meta">
               <span v-if="item.question" class="record-pill">{{ sourceTypeText(item.question.sourceType) }}</span>
-              <span class="record-pill">{{ item.question?.source || '未标注来源' }}</span>
+              <span v-if="item.question?.source" class="record-pill">{{ item.question.source }}</span>
               <span v-for="tag in tagList(item.question)" :key="tag" class="record-pill muted">{{ tag }}</span>
             </div>
           </div>
@@ -47,13 +43,13 @@
               :disabled="removingQuestionId === item.record.questionId"
               @click="handleRemove(item.record.questionId)"
             >
-              {{ removingQuestionId === item.record.questionId ? '移除中...' : '取消收藏' }}
+              {{ removingQuestionId === item.record.questionId ? '移除中...' : '移除' }}
             </button>
           </div>
         </article>
       </div>
 
-      <div v-else class="empty-state">你还没有收藏题目，练习时点击“加入收藏”即可保留。</div>
+      <div v-else class="empty-state">暂无收藏题目。</div>
     </section>
   </div>
 </template>
@@ -79,13 +75,11 @@ const removingQuestionId = ref<number | null>(null)
 const sortedItems = computed(() =>
   [...items.value].sort((left, right) => new Date(right.record.createdAt).getTime() - new Date(left.record.createdAt).getTime())
 )
-const withAnalysisCount = computed(() => items.value.filter((item) => Boolean(item.question?.analysis)).length)
-const withSourceCount = computed(() => items.value.filter((item) => Boolean(item.question?.source)).length)
 const practiceReadyCount = computed(() => items.value.filter((item) => Boolean(item.question)).length)
 const latestFavoriteLabel = computed(() => {
   const latest = sortedItems.value[0]
   if (!latest) {
-    return '暂无收藏'
+    return '-'
   }
   return new Date(latest.record.createdAt).toLocaleDateString('zh-CN')
 })
@@ -105,7 +99,7 @@ const buildPracticeLink = (question: Question | null): RouteLocationRaw => {
   }
 }
 
-const difficultyText = (difficulty = 0) => ['基础', '提高', '冲刺'][difficulty - 1] || '未标注难度'
+const difficultyText = (difficulty = 0) => ['基础', '提高', '冲刺'][difficulty - 1] || '-'
 const sourceTypeText = (sourceType = 1) => (sourceType === 2 ? '模拟题' : '真题')
 const tagList = (question: Question | null) =>
   question?.tags

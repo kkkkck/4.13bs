@@ -3,7 +3,6 @@
     <div class="panel-head">
       <div>
         <h3>练习历史</h3>
-        <p>最近几次刷题留下的轨迹，用来辅助复盘，而不只是看总分。</p>
       </div>
     </div>
 
@@ -17,20 +16,19 @@
           <span class="history-badge">{{ accuracyOf(item) }}%</span>
         </div>
 
-        <div class="history-progress">
-          <span :style="{ width: `${Math.max(accuracyOf(item), 6)}%` }"></span>
+        <div class="record-meta">
+          <span class="record-pill muted">总题数 {{ item.totalQuestions }}</span>
+          <span class="record-pill muted">答对 {{ item.correctCount }}</span>
+          <span class="record-pill muted">用时 {{ formatDuration(item.duration) }}</span>
         </div>
 
-        <div class="history-stats">
-          <span>总题数 {{ item.totalQuestions }}</span>
-          <span>答对 {{ item.correctCount }}</span>
-          <span>正确率 {{ accuracyOf(item) }}%</span>
-          <span>用时 {{ formatDuration(item.duration) }}</span>
+        <div class="history-progress subtle">
+          <span :style="{ width: `${Math.max(accuracyOf(item), 6)}%` }"></span>
         </div>
       </article>
     </div>
 
-    <div v-else class="empty-state">还没有练习记录，先去刷几道题。</div>
+    <div v-else class="empty-state">暂无练习记录。</div>
   </div>
 </template>
 

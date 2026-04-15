@@ -75,6 +75,10 @@ export const useAuthStore = defineStore('auth', {
       this.persist()
       return user
     },
+    setUser(user: User | null) {
+      this.user = user
+      this.persist()
+    },
     logout() {
       this.token = ''
       this.user = null

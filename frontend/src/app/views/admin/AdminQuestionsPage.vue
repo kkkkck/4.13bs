@@ -4,7 +4,7 @@
       <div class="panel-head">
         <div>
           <h2>题库管理</h2>
-          <p>把筛选、导入、状态切换和编辑统一收口，方便快速维护多种题型与章节题库。</p>
+          <p>集中处理筛选、导入、编辑和状态切换。</p>
         </div>
       </div>
 
@@ -18,134 +18,77 @@
         />
         <div class="row-actions">
           <button class="ghost-btn" @click="searchQuestions">搜索</button>
-          <button class="ghost-btn" @click="resetFilters">重置</button>
           <button class="ghost-btn" :class="{ active: filtersCollapsed }" @click="toggleFiltersCollapsed">
-            {{ filtersCollapsed ? '展开筛选' : '收起筛选' }}
+            {{ filtersCollapsed ? '展开' : '收起' }}
           </button>
           <button class="ghost-btn" @click="downloadTemplate">下载模板</button>
           <label class="ghost-btn file-btn">
-            Excel 导入
-            <input type="file" accept=".xlsx,.xls" @change="handleImport" />
+            {{ importing ? `导入中：${importFileName || '请稍候...'}` : 'Excel 导入' }}
+            <input type="file" accept=".xlsx,.xls" :disabled="importing" @change="handleImport" />
           </label>
           <button class="primary-btn" @click="openCreate">新增题目</button>
         </div>
       </div>
 
-      <div v-show="!filtersCollapsed" class="filter-block-grid compact">
-        <article class="feature-card filter-block">
-          <div class="category-topline">
-            <strong>专题筛选</strong>
-            <small>{{ currentCategoryLabel }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button class="chapter-pill action" :class="{ active: filters.categoryId === 0 }" @click="setCategoryFilter(0)">
-              全部专题
-            </button>
-            <button
-              v-for="category in categories"
-              :key="category.id"
-              class="chapter-pill action"
-              :class="{ active: filters.categoryId === category.id }"
-              @click="setCategoryFilter(category.id)"
-            >
+      <div v-show="!filtersCollapsed" class="question-filter-toolbar">
+        <label class="field-block toolbar-field">
+          <span>专题</span>
+          <select v-model.number="filters.categoryId" class="input select">
+            <option :value="0">全部专题</option>
+            <option v-for="category in categories" :key="category.id" :value="category.id">
               {{ categoryLabel(category) }}
-            </button>
-          </div>
-        </article>
+            </option>
+          </select>
+        </label>
 
-        <article class="feature-card filter-block compact">
-          <div class="category-topline">
-            <strong>状态筛选</strong>
-            <small>{{ statusFilterLabel }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button class="chapter-pill action" :class="{ active: filters.status === -1 }" @click="setStatusFilter(-1)">
-              全部状态
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.status === 1 }" @click="setStatusFilter(1)">
-              启用
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.status === 0 }" @click="setStatusFilter(0)">
-              停用
-            </button>
-          </div>
-        </article>
+        <label class="field-block toolbar-field">
+          <span>状态</span>
+          <select v-model.number="filters.status" class="input select">
+            <option :value="-1">全部状态</option>
+            <option :value="1">启用</option>
+            <option :value="0">停用</option>
+          </select>
+        </label>
 
-        <article class="feature-card filter-block compact">
-          <div class="category-topline">
-            <strong>题型筛选</strong>
-            <small>{{ currentTypeLabel }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button class="chapter-pill action" :class="{ active: filters.type === 0 }" @click="setTypeFilter(0)">
-              全部题型
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.type === 1 }" @click="setTypeFilter(1)">
-              单选题
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.type === 5 }" @click="setTypeFilter(5)">
-              多选题
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.type === 2 }" @click="setTypeFilter(2)">
-              填空题
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.type === 4 }" @click="setTypeFilter(4)">
-              简答题
-            </button>
-          </div>
-        </article>
+        <label class="field-block toolbar-field">
+          <span>题型</span>
+          <select v-model.number="filters.type" class="input select">
+            <option :value="0">全部题型</option>
+            <option :value="1">单选题</option>
+            <option :value="5">多选题</option>
+            <option :value="2">填空题</option>
+            <option :value="4">简答题</option>
+          </select>
+        </label>
 
-        <article class="feature-card filter-block compact">
-          <div class="category-topline">
-            <strong>难度筛选</strong>
-            <small>{{ currentDifficultyLabel }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button class="chapter-pill action" :class="{ active: filters.difficulty === 0 }" @click="setDifficultyFilter(0)">
-              全部难度
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.difficulty === 1 }" @click="setDifficultyFilter(1)">
-              基础
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.difficulty === 2 }" @click="setDifficultyFilter(2)">
-              提高
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.difficulty === 3 }" @click="setDifficultyFilter(3)">
-              冲刺
-            </button>
-          </div>
-        </article>
+        <label class="field-block toolbar-field">
+          <span>难度</span>
+          <select v-model.number="filters.difficulty" class="input select">
+            <option :value="0">全部难度</option>
+            <option :value="1">基础</option>
+            <option :value="2">提高</option>
+            <option :value="3">冲刺</option>
+          </select>
+        </label>
 
-        <article class="feature-card filter-block compact">
-          <div class="category-topline">
-            <strong>来源类型</strong>
-            <small>{{ currentSourceTypeLabel }}</small>
-          </div>
-          <div class="chapter-pills">
-            <button class="chapter-pill action" :class="{ active: filters.sourceType === 0 }" @click="setSourceTypeFilter(0)">
-              全部来源
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.sourceType === 1 }" @click="setSourceTypeFilter(1)">
-              真题
-            </button>
-            <button class="chapter-pill action" :class="{ active: filters.sourceType === 2 }" @click="setSourceTypeFilter(2)">
-              模拟题
-            </button>
-          </div>
-        </article>
+        <label class="field-block toolbar-field">
+          <span>来源</span>
+          <select v-model.number="filters.sourceType" class="input select">
+            <option :value="0">全部来源</option>
+            <option :value="1">真题</option>
+            <option :value="2">模拟题</option>
+          </select>
+        </label>
+
+        <div class="toolbar-actions">
+          <button class="ghost-btn" @click="resetFilters">清空筛选</button>
+          <button class="primary-btn" @click="searchQuestions">应用筛选</button>
+        </div>
       </div>
 
       <div class="status-strip">
-        <span>当前筛选：{{ filterSummary }}</span>
+        <span>{{ filterSummary }}</span>
         <span>本页 {{ questions.length }} 题 / 总计 {{ totalItems }} 题</span>
-      </div>
-
-      <div v-show="!filtersCollapsed" class="import-note">
-        <strong>导入模板列顺序：</strong>
-        content, type, difficulty, tags, source, sourceType, optionA, optionB, optionC, optionD,
-        correctAnswer, analysis, solutionStrategy, categoryId, status
-        <br />
-        <small>同一批内容再次导入时，系统会自动跳过已存在的重复题目，避免继续污染题库。</small>
       </div>
 
       <p v-if="message" class="form-success">{{ message }}</p>
@@ -154,6 +97,7 @@
       <div v-if="lastImportResult" class="status-strip">
         <span>最近导入：共 {{ lastImportResult.total }} 条</span>
         <span>成功 {{ lastImportResult.successCount }} 条 / 失败 {{ lastImportResult.failCount }} 条</span>
+        <span v-if="lastImportResult.enrichedCount">补全旧题 {{ lastImportResult.enrichedCount }} 条</span>
         <span v-if="lastImportResult.duplicateCount">重复跳过 {{ lastImportResult.duplicateCount }} 条</span>
       </div>
 
@@ -168,23 +112,23 @@
         <table class="table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th class="col-id">ID</th>
               <th class="col-wide">题目</th>
               <th>专题</th>
               <th>题型 / 难度</th>
-              <th>状态</th>
-              <th>操作</th>
+              <th class="table-status-cell">状态</th>
+              <th class="table-actions-cell">操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="item in questions" :key="item.id">
-              <td>{{ item.id }}</td>
+              <td class="col-id">{{ item.id }}</td>
               <td class="col-wide">
                 <div class="table-primary-cell">
                   <strong>{{ item.content }}</strong>
                   <div class="record-meta">
                     <span class="record-pill">{{ sourceTypeText(item.sourceType) }}</span>
-                    <span class="record-pill">{{ item.source || '未标注来源' }}</span>
+                    <span v-if="item.source" class="record-pill">{{ item.source }}</span>
                     <span v-for="tag in tagList(item.tags)" :key="`${item.id}-${tag}`" class="record-pill muted">
                       {{ tag }}
                     </span>
@@ -198,12 +142,12 @@
                   <small>{{ difficultyText(item.difficulty) }}</small>
                 </div>
               </td>
-              <td>
+              <td class="table-status-cell">
                 <span class="record-pill" :class="item.status === 1 ? 'success' : 'danger'">
                   {{ item.status === 1 ? '启用' : '停用' }}
                 </span>
               </td>
-              <td>
+              <td class="table-actions-cell">
                 <div class="row-actions">
                   <button class="ghost-btn small" @click="openEdit(item)">编辑</button>
                   <button
@@ -221,7 +165,7 @@
         </table>
       </div>
 
-      <div v-else class="empty-state">当前筛选条件下没有题目。</div>
+      <div v-else class="empty-state">暂无符合条件的题目。</div>
 
       <div v-if="totalItems > 0" class="pagination-bar">
         <span class="pagination-meta">第 {{ currentPage }} / {{ totalPages }} 页，共 {{ totalItems }} 道题目</span>
@@ -245,7 +189,6 @@
         <div class="panel-head">
           <div>
             <h3>{{ editingId ? '编辑题目' : '新增题目' }}</h3>
-            <p>支持单选、多选、填空和简答题，同时保留解析与解题思路。</p>
           </div>
           <button class="ghost-btn small" type="button" @click="resetEditor">关闭</button>
         </div>
@@ -365,7 +308,7 @@
         <div class="panel-head compact">
           <div>
             <h3>删除题目</h3>
-            <p>这会直接删除当前题目记录，无法自动恢复。</p>
+            <p>删除后不可恢复，请确认后再继续。</p>
           </div>
         </div>
 
@@ -373,7 +316,7 @@
           <article class="confirm-card">
             <strong>{{ pendingDeleteQuestion.content }}</strong>
             <div class="record-meta">
-              <span class="record-pill">{{ categoryMap[pendingDeleteQuestion.categoryId] || '未分类' }}</span>
+              <span v-if="categoryMap[pendingDeleteQuestion.categoryId]" class="record-pill">{{ categoryMap[pendingDeleteQuestion.categoryId] }}</span>
               <span class="record-pill muted">{{ sourceTypeText(pendingDeleteQuestion.sourceType) }}</span>
               <span class="record-pill muted">{{ typeText(pendingDeleteQuestion.type) }}</span>
               <span class="record-pill muted">{{ difficultyText(pendingDeleteQuestion.difficulty) }}</span>
@@ -422,6 +365,8 @@ const message = ref('')
 const error = ref('')
 const importErrors = ref<string[]>([])
 const lastImportResult = ref<AdminImportResult | null>(null)
+const importing = ref(false)
+const importFileName = ref('')
 const currentPage = ref(1)
 const pageSize = 20
 const totalItems = ref(0)
@@ -469,18 +414,9 @@ const currentCategoryLabel = computed(() =>
 const currentTypeLabel = computed(() => (filters.type ? typeText(filters.type) : '全部题型'))
 const currentDifficultyLabel = computed(() => (filters.difficulty ? difficultyText(filters.difficulty) : '全部难度'))
 const currentSourceTypeLabel = computed(() => (filters.sourceType ? sourceTypeText(filters.sourceType) : '全部来源'))
-const statusFilterLabel = computed(() => {
-  if (filters.status === 1) {
-    return '仅启用'
-  }
-  if (filters.status === 0) {
-    return '仅停用'
-  }
-  return '全部状态'
-})
 const filterSummary = computed(() => {
   const statusText = filters.status < 0 ? '全部状态' : filters.status === 1 ? '仅启用' : '仅停用'
-  const keywordText = filters.keyword ? `关键词：${filters.keyword}` : '无关键词'
+  const keywordText = filters.keyword ? `关键词 ${filters.keyword}` : '未设关键词'
   return `${currentCategoryLabel.value} · ${statusText} · ${currentTypeLabel.value} · ${currentDifficultyLabel.value} · ${currentSourceTypeLabel.value} · ${keywordText}`
 })
 const correctAnswerPlaceholder = computed(() => {
@@ -752,51 +688,6 @@ const searchQuestions = async () => {
   await loadQuestions(1)
 }
 
-const applyQuickFilter = async () => {
-  currentPage.value = 1
-  await loadQuestions(1)
-}
-
-const setCategoryFilter = async (categoryId: number) => {
-  if (filters.categoryId === categoryId) {
-    return
-  }
-  filters.categoryId = categoryId
-  await applyQuickFilter()
-}
-
-const setStatusFilter = async (status: number) => {
-  if (filters.status === status) {
-    return
-  }
-  filters.status = status
-  await applyQuickFilter()
-}
-
-const setTypeFilter = async (type: number) => {
-  if (filters.type === type) {
-    return
-  }
-  filters.type = type
-  await applyQuickFilter()
-}
-
-const setDifficultyFilter = async (difficulty: number) => {
-  if (filters.difficulty === difficulty) {
-    return
-  }
-  filters.difficulty = difficulty
-  await applyQuickFilter()
-}
-
-const setSourceTypeFilter = async (sourceType: number) => {
-  if (filters.sourceType === sourceType) {
-    return
-  }
-  filters.sourceType = sourceType
-  await applyQuickFilter()
-}
-
 const toggleFiltersCollapsed = () => {
   filtersCollapsed.value = !filtersCollapsed.value
 }
@@ -934,6 +825,10 @@ const handleImport = async (event: Event) => {
     return
   }
 
+  importing.value = true
+  importFileName.value = file.name
+  message.value = `正在导入 ${file.name}，题量较大时可能需要等待一段时间。`
+
   try {
     const result = await importAdminQuestions(file)
     lastImportResult.value = result
@@ -944,6 +839,8 @@ const handleImport = async (event: Event) => {
   } catch (err) {
     error.value = err instanceof Error ? err.message : '导入失败'
   } finally {
+    importing.value = false
+    importFileName.value = ''
     input.value = ''
   }
 }

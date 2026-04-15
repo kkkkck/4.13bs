@@ -2,23 +2,15 @@
   <div class="auth-page">
     <section class="auth-hero">
       <p class="eyebrow">登录学习系统</p>
-      <h1>继续你上一次的学习节奏，把专题、章节、模拟考试串成一条稳定的复习路线。</h1>
-      <p>支持用户名或邮箱直接登录，登录后可直接回到学习台。</p>
-
-      <div class="auth-list">
-        <span class="tag">专题练习</span>
-        <span class="tag">章节练习</span>
-        <span class="tag">模拟考试</span>
-        <span class="tag">错题复盘</span>
-        <span class="tag">后台管理</span>
-      </div>
+      <h1>回来继续做题。</h1>
+      <p>用户名或邮箱都能登录。</p>
     </section>
 
     <section class="auth-card">
       <div class="panel-head compact">
         <div>
           <h2>欢迎回来</h2>
-          <p>输入用户名或邮箱，快速回到练习状态。</p>
+          <p>输入账号和密码即可。</p>
         </div>
       </div>
 
@@ -58,8 +50,8 @@
       </form>
 
       <div class="support-line">
-        <span>还没有账号？</span>
-        <RouterLink to="/register">立即注册</RouterLink>
+        <span>没有账号？</span>
+        <RouterLink to="/register">去注册</RouterLink>
       </div>
     </section>
   </div>
