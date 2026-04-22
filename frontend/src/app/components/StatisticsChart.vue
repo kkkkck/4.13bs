@@ -1,28 +1,30 @@
 <template>
   <div class="chart-grid profile-chart-grid">
-    <div class="panel-card">
+    <div class="panel-card profile-compact-panel">
       <div class="panel-head">
         <div>
           <h3>专题正确率</h3>
         </div>
       </div>
 
-      <div v-if="sortedCategoryData.length" class="rate-list">
-        <article v-for="item in sortedCategoryData" :key="item.categoryName" class="rate-item">
-          <div class="rate-item-head">
-            <strong>{{ item.categoryName }}</strong>
-            <span>{{ item.correctRate }}%</span>
-          </div>
-          <div class="rate-track">
-            <span class="rate-fill" :style="{ width: `${Math.max(item.correctRate, 6)}%` }"></span>
-          </div>
-          <small>答对 {{ item.correctCount }} / 共 {{ item.totalCount }}</small>
-        </article>
+      <div v-if="sortedCategoryData.length" class="profile-table rate-table">
+        <div class="profile-table-row profile-table-head">
+          <span>专题</span>
+          <span>答对</span>
+          <span>总题</span>
+          <span>正确率</span>
+        </div>
+        <div v-for="item in sortedCategoryData" :key="item.categoryName" class="profile-table-row">
+          <strong>{{ item.categoryName }}</strong>
+          <span>{{ item.correctCount }}</span>
+          <span>{{ item.totalCount }}</span>
+          <span class="profile-rate-value">{{ item.correctRate }}%</span>
+        </div>
       </div>
       <div v-else class="chart-box compact-chart-box empty-state chart-empty">暂无专题数据。</div>
     </div>
 
-    <div class="panel-card">
+    <div class="panel-card profile-compact-panel">
       <div class="panel-head">
         <div>
           <h3>近期趋势</h3>

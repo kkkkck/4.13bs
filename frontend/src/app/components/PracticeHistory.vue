@@ -1,27 +1,26 @@
 <template>
-  <div class="panel-card">
+  <div class="panel-card profile-compact-panel">
     <div class="panel-head">
       <div>
         <h3>练习历史</h3>
       </div>
     </div>
 
-    <div v-if="items.length" class="history-card-list compact-history-list">
-      <article v-for="item in items" :key="item.id" class="history-record-card">
-        <div class="history-record-top">
-          <div>
-            <strong>{{ resolveCategoryName(item.categoryId) }}</strong>
-            <p>{{ formatTime(item.createdAt) }}</p>
-          </div>
-          <span class="history-badge">已做 {{ completedCount(item) }}</span>
-        </div>
-
-        <div class="record-meta">
-          <span class="record-pill muted">总题数 {{ item.totalQuestions }}</span>
-          <span class="record-pill muted">已做 {{ completedCount(item) }} 题</span>
-          <span class="record-pill muted">用时 {{ formatDuration(item.duration) }}</span>
-        </div>
-      </article>
+    <div v-if="items.length" class="profile-table history-table">
+      <div class="profile-table-row profile-table-head">
+        <span>时间</span>
+        <span>专题</span>
+        <span>总题</span>
+        <span>已做</span>
+        <span>用时</span>
+      </div>
+      <div v-for="item in items" :key="item.id" class="profile-table-row history-table-row">
+        <span>{{ formatDate(item.createdAt) }}</span>
+        <strong>{{ resolveCategoryName(item.categoryId) }}</strong>
+        <span>{{ item.totalQuestions }}</span>
+        <span>{{ completedCount(item) }}</span>
+        <span>{{ formatDuration(item.duration) }}</span>
+      </div>
     </div>
 
     <div v-else class="empty-state">暂无练习记录。</div>
@@ -62,10 +61,13 @@ const formatDuration = (seconds: number) => {
   return `${hours} 小时 ${remainMinutes} 分`
 }
 
-const formatTime = (value: string) => {
+const formatDate = (value: string) => {
   if (!value) {
     return '-'
   }
-  return new Date(value).toLocaleString('zh-CN')
+  return new Date(value).toLocaleDateString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit'
+  })
 }
 </script>

@@ -1012,7 +1012,7 @@ button {
 
 .profile-content-stack {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .compact-insight-grid {
@@ -1020,45 +1020,72 @@ button {
 }
 
 .profile-chart-grid {
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
 }
 
-.rate-list {
-  display: grid;
-  gap: 8px;
-}
-
-.rate-item {
+.profile-compact-panel {
   padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(54, 27, 19, 0.04);
-  border: 1px solid rgba(126, 79, 61, 0.08);
+}
+
+.profile-compact-panel .panel-head {
+  margin-bottom: 8px;
+}
+
+.profile-compact-panel .panel-head h3 {
+  font-size: 15px;
+}
+
+.profile-table {
   display: grid;
-  gap: 6px;
-}
-
-.rate-item-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.rate-item-head strong {
-  font-size: 14px;
-}
-
-.rate-item-head span,
-.rate-item small {
-  color: var(--text-muted);
-}
-
-.rate-track {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(159, 28, 34, 0.08);
+  gap: 0;
+  border: 1px solid rgba(126, 79, 61, 0.08);
+  border-radius: 10px;
   overflow: hidden;
+  background: rgba(255, 252, 248, 0.72);
+}
+
+.profile-table-row {
+  display: grid;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(126, 79, 61, 0.08);
+  font-size: 13px;
+}
+
+.profile-table-row:last-child {
+  border-bottom: none;
+}
+
+.profile-table-head {
+  min-height: 28px;
+  background: rgba(54, 27, 19, 0.04);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profile-table-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.rate-table .profile-table-row {
+  grid-template-columns: minmax(0, 1fr) 44px 44px 56px;
+}
+
+.history-table .profile-table-row {
+  grid-template-columns: 58px minmax(0, 1fr) 44px 44px 74px;
+}
+
+.profile-rate-value {
+  color: #9f1c22;
+  font-weight: 700;
 }
 
 .chart-meta {
@@ -1066,14 +1093,7 @@ button {
 }
 
 .profile-page .compact-chart-box {
-  min-height: 140px;
-}
-
-.rate-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--brand-orange), var(--brand-red));
+  min-height: 108px;
 }
 
 .metric-card {
