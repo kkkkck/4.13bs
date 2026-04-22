@@ -6,24 +6,26 @@
       </div>
     </div>
 
-    <div v-if="items.length" class="profile-table history-table">
-      <div class="profile-table-row profile-table-head">
-        <span>时间</span>
-        <span>专题</span>
-        <span>总题</span>
-        <span>已做</span>
-        <span>用时</span>
-      </div>
-      <div v-for="item in items" :key="item.id" class="profile-table-row history-table-row">
-        <span>{{ formatDate(item.createdAt) }}</span>
-        <strong>{{ resolveCategoryName(item.categoryId) }}</strong>
-        <span>{{ item.totalQuestions }}</span>
-        <span>{{ completedCount(item) }}</span>
-        <span>{{ formatDuration(item.duration) }}</span>
+    <div v-if="items.length" class="profile-table-scroll history-table-scroll">
+      <div class="profile-table history-table">
+        <div class="profile-table-row profile-table-head">
+          <span>时间</span>
+          <span>专题</span>
+          <span>总题</span>
+          <span>已做</span>
+          <span>用时</span>
+        </div>
+        <div v-for="item in items" :key="item.id" class="profile-table-row history-table-row">
+          <span>{{ formatDate(item.createdAt) }}</span>
+          <strong>{{ resolveCategoryName(item.categoryId) }}</strong>
+          <span>{{ item.totalQuestions }}</span>
+          <span>{{ completedCount(item) }}</span>
+          <span>{{ formatDuration(item.duration) }}</span>
+        </div>
       </div>
     </div>
 
-    <div v-else class="empty-state">暂无练习记录。</div>
+    <div v-else class="empty-state profile-empty">暂无练习记录。</div>
   </div>
 </template>
 

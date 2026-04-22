@@ -1012,7 +1012,7 @@ button {
 
 .profile-content-stack {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .compact-insight-grid {
@@ -1025,22 +1025,41 @@ button {
 }
 
 .profile-compact-panel {
-  padding: 10px 12px;
+  padding: 7px 9px;
+  border-radius: 10px;
 }
 
 .profile-compact-panel .panel-head {
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .profile-compact-panel .panel-head h3 {
-  font-size: 15px;
+  font-size: 14px;
+}
+
+.profile-compact-panel .record-pill {
+  padding: 3px 7px;
+  font-size: 11px;
+}
+
+.profile-table-scroll {
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.rate-table-scroll {
+  max-height: 160px;
+}
+
+.history-table-scroll {
+  max-height: 178px;
 }
 
 .profile-table {
   display: grid;
   gap: 0;
   border: 1px solid rgba(126, 79, 61, 0.08);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: rgba(255, 252, 248, 0.72);
 }
@@ -1048,11 +1067,11 @@ button {
 .profile-table-row {
   display: grid;
   align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  padding: 6px 8px;
+  gap: 6px;
+  min-height: 24px;
+  padding: 3px 7px;
   border-bottom: 1px solid rgba(126, 79, 61, 0.08);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .profile-table-row:last-child {
@@ -1060,10 +1079,10 @@ button {
 }
 
 .profile-table-head {
-  min-height: 28px;
+  min-height: 22px;
   background: rgba(54, 27, 19, 0.04);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -1072,15 +1091,15 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .rate-table .profile-table-row {
-  grid-template-columns: minmax(0, 1fr) 44px 44px 56px;
+  grid-template-columns: minmax(0, 1fr) 36px 36px 48px;
 }
 
 .history-table .profile-table-row {
-  grid-template-columns: 58px minmax(0, 1fr) 44px 44px 74px;
+  grid-template-columns: 48px minmax(0, 1fr) 34px 34px 58px;
 }
 
 .profile-rate-value {
@@ -1093,7 +1112,11 @@ button {
 }
 
 .profile-page .compact-chart-box {
-  min-height: 108px;
+  min-height: 80px;
+}
+
+.profile-empty {
+  min-height: 60px;
 }
 
 .metric-card {
