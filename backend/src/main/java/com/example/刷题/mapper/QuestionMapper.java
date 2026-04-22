@@ -47,4 +47,6 @@ public interface QuestionMapper extends BaseMapper<Question> {
     List<Map<String, Object>> selectQuestionCountByType();
 
     long countImportDuplicates(@Param("question") Question question);
+
+    Question selectByImportHash(@Param("importHash") String importHash);
 }

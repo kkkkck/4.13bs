@@ -121,7 +121,6 @@ const error = ref('')
 const success = ref('')
 const debugCode = ref('')
 const expiresInSeconds = ref(300)
-const mailEnabled = ref(false)
 const passwordVisible = ref(false)
 
 let timer: number | null = null
@@ -130,7 +129,7 @@ const normalizedEmail = computed(() => form.email.trim().toLowerCase())
 const normalizedNickname = computed(() => form.nickname.trim())
 const canSendCode = computed(() => !sendingCode.value && countdown.value === 0 && isEmailValid(normalizedEmail.value))
 const deliveryStatus = computed(() =>
-  mailEnabled.value ? '验证码将发送到你的邮箱' : '当前环境会展示调试验证码'
+  debugCode.value ? '当前环境会展示调试验证码' : '验证码将发送到你的邮箱'
 )
 const expiresText = computed(() => `${Math.max(1, Math.round(expiresInSeconds.value / 60))} 分钟内有效`)
 
@@ -177,7 +176,6 @@ const handleSendCode = async () => {
     success.value = result.message || '验证码已发送'
     debugCode.value = result.debugCode || ''
     expiresInSeconds.value = result.expiresInSeconds || 300
-    mailEnabled.value = Boolean(result.mailEnabled)
     if (debugCode.value) {
       form.code = debugCode.value
     }

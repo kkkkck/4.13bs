@@ -3,7 +3,7 @@
 <mapper namespace="com.example.刷题.mapper.QuestionMapper">
 
     <select id="selectByCategoryIds" resultType="com.example.刷题.entity.Question">
-        SELECT id, content, type, difficulty, tags, source, source_type, option_a, option_b, option_c, option_d,
+        SELECT id, content, type, difficulty, tags, source, source_type, import_hash, option_a, option_b, option_c, option_d,
                correct_answer, analysis, solution_strategy, category_id, status, created_at, updated_at
         FROM question
         WHERE status = 1
@@ -21,7 +21,7 @@
     </select>
 
     <select id="selectQuestionList" resultType="com.example.刷题.entity.Question">
-        SELECT id, content, type, difficulty, tags, source, source_type, option_a, option_b, option_c, option_d,
+        SELECT id, content, type, difficulty, tags, source, source_type, import_hash, option_a, option_b, option_c, option_d,
                correct_answer, analysis, solution_strategy, category_id, status, created_at, updated_at
         FROM question
         WHERE type != 3
@@ -50,7 +50,7 @@
     </select>
 
     <select id="selectActiveByCategoryIds" resultType="com.example.刷题.entity.Question">
-        SELECT id, content, type, difficulty, tags, source, source_type, option_a, option_b, option_c, option_d,
+        SELECT id, content, type, difficulty, tags, source, source_type, import_hash, option_a, option_b, option_c, option_d,
                correct_answer, analysis, solution_strategy, category_id, status, created_at, updated_at
         FROM question
         WHERE status = 1
@@ -92,51 +92,15 @@
     <select id="countImportDuplicates" resultType="long">
         SELECT COUNT(1)
         FROM question
-        WHERE content = #{question.content}
-          AND type = #{question.type}
-          AND category_id = #{question.categoryId}
-          AND source_type = #{question.sourceType}
-          AND correct_answer = #{question.correctAnswer}
-        <choose>
-            <when test="question.source != null and question.source != ''">
-                AND source = #{question.source}
-            </when>
-            <otherwise>
-                AND (source IS NULL OR source = '')
-            </otherwise>
-        </choose>
-        <choose>
-            <when test="question.optionA != null and question.optionA != ''">
-                AND option_a = #{question.optionA}
-            </when>
-            <otherwise>
-                AND (option_a IS NULL OR option_a = '')
-            </otherwise>
-        </choose>
-        <choose>
-            <when test="question.optionB != null and question.optionB != ''">
-                AND option_b = #{question.optionB}
-            </when>
-            <otherwise>
-                AND (option_b IS NULL OR option_b = '')
-            </otherwise>
-        </choose>
-        <choose>
-            <when test="question.optionC != null and question.optionC != ''">
-                AND option_c = #{question.optionC}
-            </when>
-            <otherwise>
-                AND (option_c IS NULL OR option_c = '')
-            </otherwise>
-        </choose>
-        <choose>
-            <when test="question.optionD != null and question.optionD != ''">
-                AND option_d = #{question.optionD}
-            </when>
-            <otherwise>
-                AND (option_d IS NULL OR option_d = '')
-            </otherwise>
-        </choose>
+        WHERE import_hash = #{question.importHash}
+    </select>
+
+    <select id="selectByImportHash" resultType="com.example.刷题.entity.Question">
+        SELECT id, content, type, difficulty, tags, source, source_type, import_hash, option_a, option_b, option_c, option_d,
+               correct_answer, analysis, solution_strategy, category_id, status, created_at, updated_at
+        FROM question
+        WHERE import_hash = #{importHash}
+        LIMIT 1
     </select>
 
 </mapper>

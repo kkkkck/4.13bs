@@ -178,6 +178,9 @@ scp -r dist/* root@your_server_ip:/opt/question-bank/deploy/nginx/html/
 - `MYSQL_PASSWORD`
 - `SPRING_REDIS_PASSWORD`（需与 redis.conf 中的密码一致）
 - `JWT_SECRET`
+- `MAIL_USERNAME`
+- `MAIL_PASSWORD`（邮箱 SMTP 授权码，不是登录密码）
+- `MAIL_FROM`
 
 编辑 `redis.conf`，修改密码：
 - `requirepass your_redis_password`
@@ -218,13 +221,35 @@ spring:
     password: your_redis_password
     timeout: 10000ms
 
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: your_sender@example.com
+    password: your_smtp_auth_code
+
 jwt:
   secret: your_jwt_secret_key_here_must_be_at_least_256_bits
   expiration: 604800000  # 7天（毫秒）
 
+app:
+  mail:
+    enabled: true
+    from: your_sender@example.com
+    debug-code-enabled: false
+
 logging:
   level:
     com.example.刷题: DEBUG
+```
+
+生产环境保持 `MAIL_ENABLED=true`、`MAIL_DEBUG_CODE_ENABLED=false`，并通过环境变量配置 SMTP：
+
+```bash
+MAIL_HOST=smtp.qq.com
+MAIL_PORT=587
+MAIL_USERNAME=your_sender@example.com
+MAIL_PASSWORD=your_smtp_auth_code
+MAIL_FROM=your_sender@example.com
 ```
 
 ### 3.2 Nginx 配置说明

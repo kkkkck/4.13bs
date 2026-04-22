@@ -53,9 +53,13 @@
               <span>{{ syllabusWeightLabel(category.id) }}</span>
               <span>{{ chapterCount(category.id) }} 个章节</span>
             </div>
-            <div v-if="chaptersOf(category.id).length" class="chapter-pills compact-inline-pills">
-              <span v-for="chapter in chaptersOf(category.id).slice(0, 6)" :key="chapter.id" class="chapter-pill">
-                {{ chapter.name }}
+            <div v-if="chapterDisplayLabels(category.id).length" class="chapter-pills compact-inline-pills mock-chapter-pills">
+              <span
+                v-for="label in chapterDisplayLabels(category.id)"
+                :key="`${category.id}-${label}`"
+                class="chapter-pill mock-chapter-pill"
+              >
+                {{ label }}
               </span>
             </div>
           </div>
@@ -495,6 +499,38 @@ const questionGroups = computed(() => {
 const chaptersOf = (parentId: number) => categories.value.filter((item) => item.parentId === parentId)
 const chapterCount = (parentId: number) => chaptersOf(parentId).length
 const syllabusWeightLabel = (categoryId: number) => SYLLABUS_WEIGHT_MAP[categoryId] || '纲要专题'
+const chapterLabelOf = (name: string) => {
+  const normalizedName = name.trim()
+  if (/^(导论|绪论)/.test(normalizedName)) {
+    return normalizedName.startsWith('绪论') ? '绪论' : '导论'
+  }
+
+  const chapterMatch = normalizedName.match(/第[一二三四五六七八九十百\d]+章/)
+  return chapterMatch ? chapterMatch[0] : ''
+}
+const compactRawChapterName = (name: string) => {
+  const normalizedName = name.trim()
+  return normalizedName.length > 8 ? `${normalizedName.slice(0, 8)}…` : normalizedName
+}
+const chapterDisplayLabels = (parentId: number) => {
+  const chapters = chaptersOf(parentId)
+  const labels: string[] = []
+  const seen = new Set<string>()
+
+  for (const chapter of chapters) {
+    const label = chapterLabelOf(chapter.name || '')
+    if (label && !seen.has(label)) {
+      seen.add(label)
+      labels.push(label)
+    }
+  }
+
+  if (labels.length) {
+    return labels
+  }
+
+  return chapters.map((chapter) => compactRawChapterName(chapter.name || '')).filter(Boolean)
+}
 
 const difficultyText = (difficulty: number) => ['基础', '提高', '冲刺'][difficulty - 1] || '未标注'
 

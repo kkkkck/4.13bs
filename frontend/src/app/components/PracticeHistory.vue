@@ -13,17 +13,13 @@
             <strong>{{ resolveCategoryName(item.categoryId) }}</strong>
             <p>{{ formatTime(item.createdAt) }}</p>
           </div>
-          <span class="history-badge">{{ accuracyOf(item) }}%</span>
+          <span class="history-badge">已做 {{ completedCount(item) }}</span>
         </div>
 
         <div class="record-meta">
           <span class="record-pill muted">总题数 {{ item.totalQuestions }}</span>
-          <span class="record-pill muted">答对 {{ item.correctCount }}</span>
+          <span class="record-pill muted">已做 {{ completedCount(item) }}</span>
           <span class="record-pill muted">用时 {{ formatDuration(item.duration) }}</span>
-        </div>
-
-        <div class="history-progress subtle">
-          <span :style="{ width: `${Math.max(accuracyOf(item), 6)}%` }"></span>
         </div>
       </article>
     </div>
@@ -47,12 +43,7 @@ const categoryMap = computed(() =>
 
 const resolveCategoryName = (categoryId: number) => categoryMap.value[categoryId] || `专题 ${categoryId}`
 
-const accuracyOf = (item: PracticeRecord) => {
-  if (!item.totalQuestions) {
-    return 0
-  }
-  return Math.round((item.correctCount / item.totalQuestions) * 100)
-}
+const completedCount = (item: PracticeRecord) => Math.max(0, item.totalQuestions || 0)
 
 const formatDuration = (seconds: number) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0)

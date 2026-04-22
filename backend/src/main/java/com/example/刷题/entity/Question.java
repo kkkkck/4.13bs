@@ -28,6 +28,8 @@ public class Question {
 
     private Integer sourceType;
 
+    private String importHash;
+
     private String optionA;
 
     private String optionB;

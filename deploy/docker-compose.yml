@@ -55,7 +55,13 @@ services:
       - REDIS_PASSWORD=your_redis_password
       - JWT_SECRET=your_jwt_secret_key_here_must_be_at_least_256_bits
       - JWT_EXPIRATION=604800000
-      - MAIL_ENABLED=false
+      - MAIL_ENABLED=${MAIL_ENABLED:-true}
+      - MAIL_HOST=${MAIL_HOST:-smtp.qq.com}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - MAIL_FROM=${MAIL_FROM:-}
+      - MAIL_DEBUG_CODE_ENABLED=${MAIL_DEBUG_CODE_ENABLED:-false}
     depends_on:
       mysql:
         condition: service_healthy

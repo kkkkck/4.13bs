@@ -2,6 +2,7 @@ package com.example.刷题.controller;
 
 import com.example.刷题.dto.AdminQuestionStatusRequest;
 import com.example.刷题.entity.Question;
+import com.example.刷题.exception.BusinessException;
 import com.example.刷题.service.QuestionService;
 import com.example.刷题.util.ExcelImportUtil;
 import com.example.刷题.util.QuestionImportTemplateUtil;
@@ -24,11 +25,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
 @RequestMapping("/api/admin/questions")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminQuestionController {
+    private static final ReentrantLock IMPORT_LOCK = new ReentrantLock();
 
     private final QuestionService questionService;
 
@@ -112,42 +115,78 @@ public class AdminQuestionController {
             result.put("message", "Please select a file to import");
             return ResponseEntity.badRequest().body(result);
         }
-
-        List<Question> questions = ExcelImportUtil.importQuestions(file);
-        int successCount = 0;
-        int duplicateCount = 0;
-        List<String> errors = new ArrayList<>();
-
-        for (Question question : questions) {
-            try {
-                if (questionService.existsImportDuplicate(question)) {
-                    duplicateCount++;
-                    continue;
-                }
-                questionService.createQuestion(question);
-                successCount++;
-            } catch (Exception ex) {
-                String preview = question.getContent() == null ? "untitled question" : question.getContent();
-                errors.add(preview.substring(0, Math.min(preview.length(), 24)) + ": " + ex.getMessage());
-            }
+        if (!IMPORT_LOCK.tryLock()) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "已有导入任务正在执行，请等待当前任务完成后再试");
+            return ResponseEntity.status(409).body(result);
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("total", questions.size());
-        result.put("successCount", successCount);
-        result.put("duplicateCount", duplicateCount);
-        result.put("failCount", errors.size());
-        result.put("errors", errors.stream().limit(8).toList());
-        result.put(
-                "message",
-                String.format(
-                        "Import finished: %d succeeded, %d duplicates skipped, %d failed",
-                        successCount,
-                        duplicateCount,
-                        errors.size()
-                )
-        );
-        return ResponseEntity.ok(result);
+        try {
+            List<Question> questions = ExcelImportUtil.importQuestions(file);
+            int successCount = 0;
+            int duplicateCount = 0;
+            int enrichedCount = 0;
+            List<String> errors = new ArrayList<>();
+
+            for (Question question : questions) {
+                try {
+                    if (questionService.existsImportDuplicate(question)) {
+                        if (questionService.enrichImportDuplicate(question)) {
+                            enrichedCount++;
+                        } else {
+                            duplicateCount++;
+                        }
+                        continue;
+                    }
+                    questionService.createQuestion(question);
+                    successCount++;
+                } catch (BusinessException ex) {
+                    if (isDuplicateError(ex)) {
+                        duplicateCount++;
+                        continue;
+                    }
+                    String preview = question.getContent() == null ? "untitled question" : question.getContent();
+                    errors.add(preview.substring(0, Math.min(preview.length(), 24)) + ": " + ex.getMessage());
+                } catch (Exception ex) {
+                    String preview = question.getContent() == null ? "untitled question" : question.getContent();
+                    errors.add(preview.substring(0, Math.min(preview.length(), 24)) + ": " + ex.getMessage());
+                }
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("total", questions.size());
+            result.put("successCount", successCount);
+            result.put("duplicateCount", duplicateCount);
+            result.put("enrichedCount", enrichedCount);
+            result.put("failCount", errors.size());
+            result.put("errors", errors.stream().limit(8).toList());
+            result.put(
+                    "message",
+                    String.format(
+                            "导入完成：成功 %d 条，补全旧题 %d 条，跳过重复 %d 条，失败 %d 条",
+                            successCount,
+                            enrichedCount,
+                            duplicateCount,
+                            errors.size()
+                    )
+            );
+            return ResponseEntity.ok(result);
+        } finally {
+            IMPORT_LOCK.unlock();
+        }
+    }
+
+    private boolean isDuplicateError(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && (message.contains("题目已存在") || message.contains("Duplicate entry"))) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

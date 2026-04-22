@@ -36,26 +36,26 @@
       <div class="panel-card">
         <div class="panel-head compact">
           <div>
-            <h3>复盘摘要</h3>
+            <h3>趋势概览</h3>
           </div>
         </div>
 
         <div class="modal-body-stack">
           <div class="insight-grid compact-insight-grid">
             <article class="feature-card insight-card compact">
-              <span class="eyebrow">最近一次</span>
+              <span class="eyebrow">最近记录</span>
               <strong>{{ latestRateLabel }}</strong>
               <p>{{ latestDateLabel }}</p>
             </article>
             <article class="feature-card insight-card compact">
-              <span class="eyebrow">相较上一轮</span>
+              <span class="eyebrow">变化</span>
               <strong>{{ trendDirectionLabel }}</strong>
               <p>{{ trendDirectionCopy }}</p>
             </article>
             <article class="feature-card insight-card compact">
-              <span class="eyebrow">下一步</span>
-              <strong>{{ actionLabel }}</strong>
-              <p>{{ actionCopy }}</p>
+              <span class="eyebrow">样本</span>
+              <strong>{{ sampleDaysLabel }}</strong>
+              <p>{{ sampleCountLabel }}</p>
             </article>
           </div>
         </div>
@@ -92,10 +92,13 @@ const sortedCategoryData = computed(() =>
   })
 )
 
-const latestTrend = computed(() => props.trendData.at(-1) || null)
-const previousTrend = computed(() => (props.trendData.length > 1 ? props.trendData.at(-2) || null : null))
+const practicedTrendData = computed(() => props.trendData.filter((item) => item.totalCount > 0))
+const latestTrend = computed(() => practicedTrendData.value.at(-1) || props.trendData.at(-1) || null)
+const previousTrend = computed(() => (
+  practicedTrendData.value.length > 1 ? practicedTrendData.value.at(-2) || null : null
+))
 const latestRateLabel = computed(() => (latestTrend.value ? `${latestTrend.value.correctRate}%` : '-'))
-const latestDateLabel = computed(() => (latestTrend.value ? latestTrend.value.date : '继续练习后更新'))
+const latestDateLabel = computed(() => (latestTrend.value && latestTrend.value.totalCount > 0 ? latestTrend.value.date : '暂无练习记录'))
 const trendDelta = computed(() => {
   if (!latestTrend.value || !previousTrend.value) {
     return 0
@@ -104,7 +107,7 @@ const trendDelta = computed(() => {
 })
 const trendDirectionLabel = computed(() => {
   if (!latestTrend.value || !previousTrend.value) {
-    return '等待更多记录'
+    return '暂无对比'
   }
   if (trendDelta.value > 0) {
     return `上升 ${trendDelta.value}%`
@@ -116,30 +119,18 @@ const trendDirectionLabel = computed(() => {
 })
 const trendDirectionCopy = computed(() => {
   if (!latestTrend.value || !previousTrend.value) {
-    return '再完成一轮练习后更新。'
+    return '至少两天有记录后显示变化。'
   }
   if (trendDelta.value > 0) {
-    return '最近一轮更稳。'
+    return '较上一有记录日提高。'
   }
   if (trendDelta.value < 0) {
-    return '最近一轮有回落。'
+    return '较上一有记录日降低。'
   }
-  return '最近两次表现接近。'
+  return '与上一有记录日持平。'
 })
-const actionLabel = computed(() => {
-  const weakest = sortedCategoryData.value.at(-1)
-  if (!weakest) {
-    return '先完成练习'
-  }
-  return weakest.categoryName
-})
-const actionCopy = computed(() => {
-  const weakest = sortedCategoryData.value.at(-1)
-  if (!weakest) {
-    return '先完成几次练习。'
-  }
-  return `正确率 ${weakest.correctRate}%`
-})
+const sampleDaysLabel = computed(() => `${practicedTrendData.value.length}/${props.trendData.length} 天`)
+const sampleCountLabel = computed(() => `共 ${practicedTrendData.value.reduce((sum, item) => sum + item.totalCount, 0)} 题`)
 const disposeLine = () => {
   lineChart?.dispose()
   lineChart = null

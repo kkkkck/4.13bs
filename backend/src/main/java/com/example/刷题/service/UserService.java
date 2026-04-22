@@ -2,6 +2,7 @@ package com.example.刷题.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.刷题.entity.User;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,14 @@ public interface UserService extends IService<User> {
     User login(String account, String password);
 
     User getActiveUserById(Long userId);
+
+    User updateProfile(Long userId, String nickname, String email, String verificationCode);
+
+    User updateAvatar(Long userId, MultipartFile file);
+
+    User removeAvatar(Long userId);
+
+    void changePassword(Long userId, String currentPassword, String newPassword);
 
     Map<String, Object> getUserList(
             Integer page,

@@ -20,6 +20,10 @@ public class User {
 
     private String nickname;
 
+    private String avatarPreset;
+
+    private String avatarUrl;
+
     private Integer role;
     private Integer status;
     @TableField(exist = false)

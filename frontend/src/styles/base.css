@@ -1294,6 +1294,20 @@ button {
   font-size: 13px;
 }
 
+.mock-chapter-pills {
+  gap: 5px;
+  max-width: 100%;
+}
+
+.mock-chapter-pill {
+  min-width: 54px;
+  justify-content: center;
+  padding: 5px 8px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .compact-topic-card .chapter-pill,
 .compact-topic-grid .chapter-pill {
   padding: 6px 10px;
@@ -1373,7 +1387,7 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 64px;
+  min-width: 86px;
   padding: 7px 10px;
   border-radius: 999px;
   background: rgba(159, 28, 34, 0.07);

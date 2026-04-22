@@ -73,6 +73,8 @@ public interface QuestionService extends IService<Question> {
     void createQuestion(Question question);
 
     boolean existsImportDuplicate(Question question);
+
+    boolean enrichImportDuplicate(Question question);
     
     /**
      * 更新题目

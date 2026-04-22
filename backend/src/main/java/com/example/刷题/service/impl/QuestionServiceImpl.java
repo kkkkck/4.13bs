@@ -16,20 +16,31 @@ import com.example.刷题.service.CacheService;
 import com.example.刷题.service.QuestionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.HexFormat;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,6 +49,34 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private static final List<Integer> MOCK_EXAM_OBJECTIVE_TYPES = List.of(1, 5);
     private static final Map<Long, Integer> MOCK_EXAM_ROOT_WEIGHTS = buildMockExamRootWeights();
     private static final Map<Integer, Integer> MOCK_EXAM_TYPE_WEIGHTS = Map.of(1, 16, 5, 17);
+    private static final long THEORY_ROOT_ID = 2L;
+    private static final String THEORY_GROUP_LEGACY = "legacy";
+    private static final String THEORY_GROUP_NEW_THOUGHT = "newThought";
+    private static final Map<String, Integer> THEORY_GROUP_WEIGHTS = Map.of(
+            THEORY_GROUP_LEGACY, 13,
+            THEORY_GROUP_NEW_THOUGHT, 22
+    );
+    private static final Set<String> LEGACY_THEORY_CHAPTER_NAMES = Set.of(
+            "导论",
+            "毛概：导论",
+            "马克思主义中国化时代化的历史进程与理论成果",
+            "第一章 毛泽东思想及其历史地位",
+            "毛泽东思想及其历史地位",
+            "第二章 新民主主义革命理论",
+            "新民主主义革命理论",
+            "第三章 社会主义改造理论",
+            "社会主义改造理论",
+            "第四章 社会主义建设道路初步探索的理论成果",
+            "社会主义建设道路初步探索的理论成果",
+            "第五章 中国特色社会主义理论体系的形成发展",
+            "中国特色社会主义理论体系的形成发展",
+            "第六章 邓小平理论",
+            "邓小平理论",
+            "第七章 “三个代表”重要思想",
+            "“三个代表”重要思想",
+            "第八章 科学发展观",
+            "科学发展观"
+    );
 
     @Autowired
     private CacheService cacheService;
@@ -82,7 +121,12 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     public boolean updateByIdWithCache(Question question) {
         normalizeQuestion(question);
-        boolean updated = super.updateById(question);
+        boolean updated;
+        try {
+            updated = super.updateById(question);
+        } catch (DuplicateKeyException ex) {
+            throw new BusinessException("题目已存在");
+        }
         if (updated) {
             clearQuestionCaches(question.getId());
         }
@@ -162,7 +206,11 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     public void createQuestion(Question question) {
         normalizeQuestion(question);
-        super.save(question);
+        try {
+            super.save(question);
+        } catch (DuplicateKeyException ex) {
+            throw new BusinessException("题目已存在");
+        }
         clearQuestionCaches(question.getId());
     }
 
@@ -173,9 +221,55 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     }
 
     @Override
+    public boolean enrichImportDuplicate(Question question) {
+        normalizeQuestion(question);
+        if (!StringUtils.hasText(question.getImportHash())) {
+            return false;
+        }
+
+        Question existing = getBaseMapper().selectByImportHash(question.getImportHash());
+        if (existing == null) {
+            return false;
+        }
+
+        boolean changed = false;
+        changed |= adoptIfMissing(existing::getAnalysis, existing::setAnalysis, question.getAnalysis());
+        changed |= adoptIfMissing(existing::getSolutionStrategy, existing::setSolutionStrategy, question.getSolutionStrategy());
+        changed |= adoptIfMissing(existing::getSource, existing::setSource, question.getSource());
+
+        String mergedTags = mergeTags(existing.getTags(), question.getTags());
+        if (!Objects.equals(existing.getTags(), mergedTags)) {
+            existing.setTags(mergedTags);
+            changed = true;
+        }
+
+        if ((existing.getSourceType() == null || existing.getSourceType() == 0) && question.getSourceType() != null) {
+            existing.setSourceType(question.getSourceType());
+            changed = true;
+        }
+
+        if (shouldPromoteCategory(existing.getCategoryId(), question.getCategoryId())) {
+            existing.setCategoryId(question.getCategoryId());
+            changed = true;
+        }
+
+        if (!changed) {
+            return false;
+        }
+
+        super.updateById(existing);
+        clearQuestionCaches(existing.getId());
+        return true;
+    }
+
+    @Override
     public void updateQuestion(Question question) {
         normalizeQuestion(question);
-        super.updateById(question);
+        try {
+            super.updateById(question);
+        } catch (DuplicateKeyException ex) {
+            throw new BusinessException("题目已存在");
+        }
         clearQuestionCaches(question.getId());
     }
 
@@ -301,6 +395,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                                 LinkedHashMap::new
                         ));
                 Map<Long, Integer> chapterAllocation = allocateWeightedCounts(rootCount, leafCapacities, leafCapacities, false);
+                if (bucket.category().getId() == THEORY_ROOT_ID) {
+                    chapterAllocation = allocateTheoryLeafCounts(bucket, rootCount, type);
+                }
 
                 for (ExamLeaf leaf : bucket.leaves()) {
                     int chapterCount = chapterAllocation.getOrDefault(leaf.category().getId(), 0);
@@ -363,6 +460,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         question.setSourceType(normalizeSourceType(question.getSourceType(), question.getSource()));
         question.setTags(trimToNull(question.getTags()));
         question.setSource(trimToNull(question.getSource()));
+        question.setImportHash(null);
         question.setOptionA(trimToNull(question.getOptionA()));
         question.setOptionB(trimToNull(question.getOptionB()));
         question.setOptionC(trimToNull(question.getOptionC()));
@@ -382,10 +480,43 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
         validateCorrectAnswer(question.getType(), normalizedCorrectAnswer);
         question.setCorrectAnswer(normalizedCorrectAnswer);
+        question.setImportHash(buildImportHash(question));
     }
 
     private String trimToNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private boolean adoptIfMissing(Supplier<String> currentSupplier, Consumer<String> setter, String incomingValue) {
+        if (StringUtils.hasText(currentSupplier.get()) || !StringUtils.hasText(incomingValue)) {
+            return false;
+        }
+        setter.accept(incomingValue.trim());
+        return true;
+    }
+
+    private String mergeTags(String existingTags, String incomingTags) {
+        LinkedHashSet<String> merged = new LinkedHashSet<>();
+        collectTags(merged, existingTags);
+        collectTags(merged, incomingTags);
+        return merged.isEmpty() ? null : String.join(",", merged);
+    }
+
+    private void collectTags(Set<String> collector, String tags) {
+        if (!StringUtils.hasText(tags)) {
+            return;
+        }
+        Arrays.stream(tags.split("[,，、\\s]+"))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .forEach(collector::add);
+    }
+
+    private boolean shouldPromoteCategory(Long existingCategoryId, Long incomingCategoryId) {
+        if (incomingCategoryId == null || Objects.equals(existingCategoryId, incomingCategoryId)) {
+            return false;
+        }
+        return existingCategoryId == null || (existingCategoryId >= 1 && existingCategoryId <= 5 && incomingCategoryId > 5);
     }
 
     private String normalizeAnswer(Integer type, String answer) {
@@ -468,12 +599,101 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     private static Map<Long, Integer> buildMockExamRootWeights() {
         Map<Long, Integer> weights = new LinkedHashMap<>();
-        weights.put(1L, 24);
-        weights.put(2L, 30);
-        weights.put(3L, 14);
-        weights.put(4L, 16);
-        weights.put(5L, 16);
+        weights.put(1L, 22);
+        weights.put(2L, 35);
+        weights.put(3L, 15);
+        weights.put(4L, 15);
+        weights.put(5L, 13);
         return Collections.unmodifiableMap(weights);
+    }
+
+    private Map<Long, Integer> allocateTheoryLeafCounts(ExamBucket bucket, int rootCount, int type) {
+        Map<String, List<ExamLeaf>> groupedLeaves = bucket.leaves().stream()
+                .filter(leaf -> leaf.getAvailable(type) > 0)
+                .collect(Collectors.groupingBy(
+                        this::resolveTheoryGroup,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+        Map<String, Integer> groupCapacities = groupedLeaves.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream().mapToInt(leaf -> leaf.getAvailable(type)).sum(),
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
+        Map<String, Integer> groupAllocation = allocateWeightedCounts(rootCount, groupCapacities, THEORY_GROUP_WEIGHTS, false);
+        Map<Long, Integer> result = new LinkedHashMap<>();
+
+        for (Map.Entry<String, List<ExamLeaf>> entry : groupedLeaves.entrySet()) {
+            int groupCount = groupAllocation.getOrDefault(entry.getKey(), 0);
+            if (groupCount <= 0) {
+                continue;
+            }
+
+            Map<Long, Integer> leafCapacities = entry.getValue().stream()
+                    .collect(Collectors.toMap(
+                            leaf -> leaf.category().getId(),
+                            leaf -> leaf.getAvailable(type),
+                            (left, right) -> left,
+                            LinkedHashMap::new
+                    ));
+            Map<Long, Integer> leafAllocation = allocateWeightedCounts(groupCount, leafCapacities, leafCapacities, false);
+            leafAllocation.forEach((key, value) -> result.merge(key, value, Integer::sum));
+        }
+
+        return result;
+    }
+
+    private String resolveTheoryGroup(ExamLeaf leaf) {
+        return isLegacyTheoryLeaf(leaf.category()) ? THEORY_GROUP_LEGACY : THEORY_GROUP_NEW_THOUGHT;
+    }
+
+    private boolean isLegacyTheoryLeaf(Category category) {
+        if (category == null) {
+            return false;
+        }
+        if (category.getId() != null && category.getId() == THEORY_ROOT_ID) {
+            return true;
+        }
+        return LEGACY_THEORY_CHAPTER_NAMES.contains(category.getName());
+    }
+
+    private String buildImportHash(Question question) {
+        String payload = String.join(
+                "||",
+                normalizeFingerprintText(question.getContent()),
+                String.valueOf(question.getType()),
+                normalizeFingerprintText(question.getCorrectAnswer()).toUpperCase(),
+                normalizeFingerprintText(question.getOptionA()),
+                normalizeFingerprintText(question.getOptionB()),
+                normalizeFingerprintText(question.getOptionC()),
+                normalizeFingerprintText(question.getOptionD())
+        );
+        return sha256(payload);
+    }
+
+    private String normalizeFingerprintText(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFKC)
+                .replace('\r', ' ')
+                .replace('\n', ' ')
+                .replace('\t', ' ')
+                .trim()
+                .toLowerCase(Locale.ROOT);
+        return normalized.replaceAll("[\\p{P}\\p{S}\\s]+", "");
+    }
+
+    private String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 not supported", ex);
+        }
     }
 
     private Map<Integer, List<Question>> groupQuestionsByType(List<Question> questions) {

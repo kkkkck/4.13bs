@@ -34,25 +34,25 @@
         <div class="compact-row-list">
           <div class="compact-row compact-row-static">
             <div class="compact-row-main">
-              <strong>最佳专题</strong>
+              <strong>最高正确率</strong>
               <div class="compact-row-meta">
                 <span>{{ bestCategory?.categoryName || '-' }}</span>
-                <span>{{ bestCategory ? `正确率 ${bestCategory.correctRate}%` : '练习后更新' }}</span>
+                <span>{{ bestCategory ? `${bestCategory.correctRate}%` : '暂无记录' }}</span>
               </div>
             </div>
           </div>
           <div class="compact-row compact-row-static">
             <div class="compact-row-main">
-              <strong>待补专题</strong>
+              <strong>最低正确率</strong>
               <div class="compact-row-meta">
                 <span>{{ weakestCategory?.categoryName || '-' }}</span>
-                <span>{{ weakestCategory ? `正确率 ${weakestCategory.correctRate}%` : '暂无明显短板' }}</span>
+                <span>{{ weakestCategory ? `${weakestCategory.correctRate}%` : '暂无记录' }}</span>
               </div>
             </div>
           </div>
           <div class="compact-row compact-row-static">
             <div class="compact-row-main">
-              <strong>累计投入</strong>
+              <strong>练习时长</strong>
               <div class="compact-row-meta">
                 <span>{{ totalDurationLabel }}</span>
                 <span>{{ latestPracticeLabel === '-' ? '暂无练习记录' : `${latestPracticeLabel} · 共 ${sortedHistory.length} 次记录` }}</span>
@@ -127,15 +127,15 @@ const latestPracticeLabel = computed(() => {
 const totalDurationLabel = computed(() => {
   const seconds = sortedHistory.value.reduce((sum, item) => sum + item.duration, 0)
   if (seconds < 60) {
-    return `累计学习 ${seconds} 秒`
+    return `${seconds} 秒`
   }
   const minutes = Math.floor(seconds / 60)
   if (minutes < 60) {
-    return `累计学习 ${minutes} 分钟`
+    return `${minutes} 分钟`
   }
   const hours = Math.floor(minutes / 60)
   const remainMinutes = minutes % 60
-  return `累计学习 ${hours} 小时 ${remainMinutes} 分`
+  return `${hours} 小时 ${remainMinutes} 分`
 })
 
 const loadProfile = async () => {

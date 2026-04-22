@@ -23,6 +23,41 @@ npm install
 npm run dev
 ```
 
+## 真实邮箱验证码
+
+后端默认按真实 SMTP 发送验证码，不再默认把开发验证码返回给前端。启动前配置这些环境变量：
+
+```bash
+MAIL_ENABLED=true
+MAIL_HOST=smtp.qq.com
+MAIL_PORT=587
+MAIL_USERNAME=你的发件邮箱
+MAIL_PASSWORD=你的邮箱 SMTP 授权码
+MAIL_FROM=你的发件邮箱
+MAIL_DEBUG_CODE_ENABLED=false
+```
+
+如果只是本地联调、暂时没有 SMTP 授权码，可以显式打开开发模式：
+
+```bash
+MAIL_ENABLED=false
+MAIL_DEBUG_CODE_ENABLED=true
+```
+
+生产环境不要开启 `MAIL_DEBUG_CODE_ENABLED`，否则接口会返回验证码。
+
+## 压力测试和高并发测试
+
+仓库提供无额外依赖的 Node 压测脚本，要求 Node.js 18+：
+
+```bash
+node tools/load-test.mjs --url http://127.0.0.1:8080 --scenario health --requests 1000 --concurrency 50
+node tools/load-test.mjs --url http://127.0.0.1:8080 --scenario login --requests 300 --concurrency 30
+node tools/load-test.mjs --url http://127.0.0.1:8080 --scenario read --requests 1000 --concurrency 50 --account admin@example.com --password admin123 --categoryId 1
+```
+
+`health` 用于基础吞吐，`login` 会压登录链路，`read` 会先登录再压分类、题目列表和统计接口。不要用真实 SMTP 对验证码接口做高并发压测，邮箱服务商通常会限流。
+
 ## `kyzz` 数据集一键导入
 
 当前仓库已经适配 `mrwoov/kyzz` 数据集，并提供一条可复现的导入链路：

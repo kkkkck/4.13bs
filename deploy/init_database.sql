@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS `user` (
   `email` VARCHAR(100) NOT NULL UNIQUE,
   `password` VARCHAR(255) NOT NULL,
   `nickname` VARCHAR(50) NOT NULL,
+  `avatar_preset` VARCHAR(40) NOT NULL DEFAULT 'sunrise-reader',
+  `avatar_url` VARCHAR(255) DEFAULT NULL,
   `role` TINYINT NOT NULL DEFAULT 0,
   `status` TINYINT NOT NULL DEFAULT 1,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -63,6 +65,42 @@ SET @user_nickname_not_null_sql := IF(
 PREPARE stmt_user_nickname_not_null FROM @user_nickname_not_null_sql;
 EXECUTE stmt_user_nickname_not_null;
 DEALLOCATE PREPARE stmt_user_nickname_not_null;
+
+SET @has_avatar_preset := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user'
+    AND COLUMN_NAME = 'avatar_preset'
+);
+SET @user_avatar_preset_sql := IF(
+  @has_avatar_preset = 0,
+  'ALTER TABLE `user` ADD COLUMN `avatar_preset` VARCHAR(40) NOT NULL DEFAULT ''sunrise-reader'' AFTER `nickname`',
+  'SELECT 1'
+);
+PREPARE stmt_user_avatar_preset FROM @user_avatar_preset_sql;
+EXECUTE stmt_user_avatar_preset;
+DEALLOCATE PREPARE stmt_user_avatar_preset;
+
+UPDATE `user`
+SET `avatar_preset` = 'sunrise-reader'
+WHERE `avatar_preset` IS NULL OR `avatar_preset` = '';
+
+SET @has_avatar_url := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user'
+    AND COLUMN_NAME = 'avatar_url'
+);
+SET @user_avatar_url_sql := IF(
+  @has_avatar_url = 0,
+  'ALTER TABLE `user` ADD COLUMN `avatar_url` VARCHAR(255) NULL AFTER `avatar_preset`',
+  'SELECT 1'
+);
+PREPARE stmt_user_avatar_url FROM @user_avatar_url_sql;
+EXECUTE stmt_user_avatar_url;
+DEALLOCATE PREPARE stmt_user_avatar_url;
 
 CREATE TABLE IF NOT EXISTS `category` (
   `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -146,6 +184,22 @@ PREPARE stmt_question_source_type FROM @question_source_type_alter_sql;
 EXECUTE stmt_question_source_type;
 DEALLOCATE PREPARE stmt_question_source_type;
 
+SET @has_import_hash := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'question'
+    AND COLUMN_NAME = 'import_hash'
+);
+SET @question_import_hash_alter_sql := IF(
+  @has_import_hash = 0,
+  'ALTER TABLE `question` ADD COLUMN `import_hash` CHAR(64) NULL AFTER `source_type`',
+  'SELECT 1'
+);
+PREPARE stmt_question_import_hash FROM @question_import_hash_alter_sql;
+EXECUTE stmt_question_import_hash;
+DEALLOCATE PREPARE stmt_question_import_hash;
+
 UPDATE `question`
 SET `source_type` = CASE
   WHEN LOWER(COALESCE(`source`, '')) LIKE '%mock%'
@@ -157,6 +211,76 @@ SET `source_type` = CASE
 END
 WHERE `source_type` IS NULL
    OR `source_type` NOT IN (1, 2);
+
+UPDATE `question`
+SET `import_hash` = LOWER(SHA2(CONCAT_WS(
+  '||',
+  REGEXP_REPLACE(
+    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+      LOWER(TRIM(COALESCE(`content`, ''))),
+      '“', ''), '”', ''), '‘', ''), '’', ''), '：', ''), '；', ''), '，', ''), '。', ''), '！', ''), '？', ''),
+      '（', ''), '）', ''), '《', ''), '》', ''
+    ),
+    '[[:space:][:punct:]]+',
+    ''
+  ),
+  COALESCE(`type`, ''),
+  REGEXP_REPLACE(LOWER(TRIM(COALESCE(`correct_answer`, ''))), '[[:space:][:punct:]]+', ''),
+  REGEXP_REPLACE(
+    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+      LOWER(TRIM(COALESCE(`option_a`, ''))),
+      '“', ''), '”', ''), '‘', ''), '’', ''), '：', ''), '；', ''), '，', ''), '。', ''), '！', ''), '？', ''),
+      '（', ''), '）', ''), '《', ''), '》', ''
+    ),
+    '[[:space:][:punct:]]+',
+    ''
+  ),
+  REGEXP_REPLACE(
+    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+      LOWER(TRIM(COALESCE(`option_b`, ''))),
+      '“', ''), '”', ''), '‘', ''), '’', ''), '：', ''), '；', ''), '，', ''), '。', ''), '！', ''), '？', ''),
+      '（', ''), '）', ''), '《', ''), '》', ''
+    ),
+    '[[:space:][:punct:]]+',
+    ''
+  ),
+  REGEXP_REPLACE(
+    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+      LOWER(TRIM(COALESCE(`option_c`, ''))),
+      '“', ''), '”', ''), '‘', ''), '’', ''), '：', ''), '；', ''), '，', ''), '。', ''), '！', ''), '？', ''),
+      '（', ''), '）', ''), '《', ''), '》', ''
+    ),
+    '[[:space:][:punct:]]+',
+    ''
+  ),
+  REGEXP_REPLACE(
+    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+      LOWER(TRIM(COALESCE(`option_d`, ''))),
+      '“', ''), '”', ''), '‘', ''), '’', ''), '：', ''), '；', ''), '，', ''), '。', ''), '！', ''), '？', ''),
+      '（', ''), '）', ''), '《', ''), '》', ''
+    ),
+    '[[:space:][:punct:]]+',
+    ''
+  )
+), 256))
+WHERE `import_hash` IS NULL
+   OR `import_hash` = '';
+
+SET @has_import_hash_unique := (
+  SELECT COUNT(*)
+  FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'question'
+    AND INDEX_NAME = 'uk_question_import_hash'
+);
+SET @question_import_hash_index_sql := IF(
+  @has_import_hash_unique = 0,
+  'ALTER TABLE `question` ADD UNIQUE KEY `uk_question_import_hash` (`import_hash`)',
+  'SELECT 1'
+);
+PREPARE stmt_question_import_hash_index FROM @question_import_hash_index_sql;
+EXECUTE stmt_question_import_hash_index;
+DEALLOCATE PREPARE stmt_question_import_hash_index;
 
 CREATE TABLE IF NOT EXISTS `wrong_question` (
   `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -201,11 +325,11 @@ CREATE TABLE IF NOT EXISTS `user_activity_session` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `category` (`id`, `name`, `description`, `sort`, `parent_id`, `practice_mode`, `status`) VALUES
-  (1, '马克思主义基本原理', '约 24% · 理论基础模块，客观题高频主阵地', 1, 0, 1, 1),
-  (2, '毛泽东思想和中国特色社会主义理论体系概论', '约 30% · 占比最高的核心专题', 2, 0, 1, 1),
-  (3, '中国近现代史纲要', '约 14% · 以历史主线和关键节点为主', 3, 0, 2, 1),
-  (4, '思想道德与法治', '约 16% · 价值观、法治与伦理判断模块', 4, 0, 1, 1),
-  (5, '形势与政策以及当代世界经济与政治', '约 16% · 时政热点与国际视野模块', 5, 0, 2, 1),
+  (1, '马克思主义基本原理', '约 22% · 理论基础模块，客观题高频主阵地', 1, 0, 1, 1),
+  (2, '毛泽东思想和中国特色社会主义理论体系概论', '约 35% · 毛中特 13% + 新思想 22%', 2, 0, 1, 1),
+  (3, '中国近现代史纲要', '约 15% · 以历史主线和关键节点为主', 3, 0, 2, 1),
+  (4, '思想道德与法治', '约 15% · 价值观、法治与伦理判断模块', 4, 0, 1, 1),
+  (5, '形势与政策以及当代世界经济与政治', '约 13% · 时政热点与国际视野模块', 5, 0, 2, 1),
   (101, '历史的选择与人民的抉择', '近现代史样例章节', 1, 3, 2, 1),
   (102, '时政热点与政策方法', '时政样例章节', 1, 5, 2, 1)
 ON DUPLICATE KEY UPDATE

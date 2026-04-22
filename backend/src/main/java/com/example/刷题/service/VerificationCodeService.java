@@ -4,23 +4,32 @@ import com.example.刷题.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Slf4j
 public class VerificationCodeService {
+    private static final String CODE_KEY_PREFIX = "auth:code:";
+    private static final String LIMIT_KEY_PREFIX = "auth:limit:";
+    private static final DefaultRedisScript<Long> VERIFY_AND_DELETE_SCRIPT = new DefaultRedisScript<>(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+            Long.class
+    );
 
     private final Map<String, VerificationCode> codeMap = new ConcurrentHashMap<>();
     private final Map<String, Long> cooldownMap = new ConcurrentHashMap<>();
-    private final Random random = new Random();
+    private final SecureRandom random = new SecureRandom();
 
     @Value("${app.auth.verification-code-expire-seconds:300}")
     private long codeExpireSeconds;
@@ -37,39 +46,21 @@ public class VerificationCodeService {
             throw new BusinessException("邮箱不能为空");
         }
 
-        if (stringRedisTemplate != null) {
-            try {
-                Boolean limited = stringRedisTemplate.hasKey("auth:limit:" + normalizedEmail);
-                if (Boolean.TRUE.equals(limited)) {
-                    throw new IllegalStateException("请等待 60 秒后再重新获取验证码");
-                }
-            } catch (IllegalStateException ex) {
-                throw ex;
-            } catch (Exception ex) {
-                log.warn("Redis unavailable for verification limit", ex);
-            }
-        }
-
-        Long expireAt = cooldownMap.get(normalizedEmail);
-        if (expireAt != null && expireAt > System.currentTimeMillis()) {
-            throw new IllegalStateException("请等待 60 秒后再重新获取验证码");
-        }
+        reserveCooldown(normalizedEmail);
 
         String code = String.format("%06d", random.nextInt(1_000_000));
         long now = System.currentTimeMillis();
-        cooldownMap.put(normalizedEmail, now + cooldownSeconds * 1000L);
         codeMap.put(normalizedEmail, new VerificationCode(code, now));
 
         if (stringRedisTemplate != null) {
             try {
-                stringRedisTemplate.opsForValue().set("auth:code:" + normalizedEmail, code, Duration.ofSeconds(codeExpireSeconds));
-                stringRedisTemplate.opsForValue().set("auth:limit:" + normalizedEmail, "1", Duration.ofSeconds(cooldownSeconds));
+                stringRedisTemplate.opsForValue().set(codeKey(normalizedEmail), code, Duration.ofSeconds(codeExpireSeconds));
             } catch (Exception ex) {
-                log.warn("Redis unavailable for verification code", ex);
+                log.warn("Redis unavailable for verification code, error: {}", ex.getMessage());
             }
         }
 
-        log.info("Generated verification code {} for {}", code, normalizedEmail);
+        log.info("Generated verification code for {}", normalizedEmail);
         return code;
     }
 
@@ -83,16 +74,20 @@ public class VerificationCodeService {
 
         if (stringRedisTemplate != null) {
             try {
-                String cached = stringRedisTemplate.opsForValue().get("auth:code:" + normalizedEmail);
-                if (cached != null) {
-                    boolean matched = cached.equals(normalizedCode);
+                Long deleted = stringRedisTemplate.execute(
+                        VERIFY_AND_DELETE_SCRIPT,
+                        Collections.singletonList(codeKey(normalizedEmail)),
+                        normalizedCode
+                );
+                if (deleted != null) {
+                    boolean matched = deleted > 0;
                     if (matched) {
-                        stringRedisTemplate.delete("auth:code:" + normalizedEmail);
+                        codeMap.remove(normalizedEmail);
                     }
                     return matched;
                 }
             } catch (Exception ex) {
-                log.warn("Redis unavailable when verifying code", ex);
+                log.warn("Redis unavailable when verifying code, error: {}", ex.getMessage());
             }
         }
 
@@ -104,12 +99,30 @@ public class VerificationCodeService {
             return false;
         }
         if (System.currentTimeMillis() - verificationCode.createTime() > codeExpireSeconds * 1000L) {
-            codeMap.remove(normalizedEmail);
+            codeMap.remove(normalizedEmail, verificationCode);
             return false;
         }
 
+        return codeMap.remove(normalizedEmail, verificationCode);
+    }
+
+    public void invalidateCode(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        if (!StringUtils.hasText(normalizedEmail)) {
+            return;
+        }
+
         codeMap.remove(normalizedEmail);
-        return true;
+        cooldownMap.remove(normalizedEmail);
+
+        if (stringRedisTemplate != null) {
+            try {
+                stringRedisTemplate.delete(codeKey(normalizedEmail));
+                stringRedisTemplate.delete(limitKey(normalizedEmail));
+            } catch (Exception ex) {
+                log.warn("Redis unavailable when invalidating verification code, error: {}", ex.getMessage());
+            }
+        }
     }
 
     public int getCodeExpireSeconds() {
@@ -122,6 +135,60 @@ public class VerificationCodeService {
 
     private String normalizeEmail(String email) {
         return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void reserveCooldown(String normalizedEmail) {
+        if (cooldownSeconds <= 0) {
+            return;
+        }
+
+        if (stringRedisTemplate != null) {
+            try {
+                Boolean reserved = stringRedisTemplate.opsForValue().setIfAbsent(
+                        limitKey(normalizedEmail),
+                        "1",
+                        Duration.ofSeconds(cooldownSeconds)
+                );
+                if (Boolean.FALSE.equals(reserved)) {
+                    throw new IllegalStateException(rateLimitMessage());
+                }
+                if (Boolean.TRUE.equals(reserved)) {
+                    cooldownMap.put(normalizedEmail, System.currentTimeMillis() + cooldownSeconds * 1000L);
+                    return;
+                }
+            } catch (IllegalStateException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                log.warn("Redis unavailable for verification limit, error: {}", ex.getMessage());
+            }
+        }
+
+        long now = System.currentTimeMillis();
+        long nextAllowedAt = now + cooldownSeconds * 1000L;
+        AtomicBoolean limited = new AtomicBoolean(false);
+        cooldownMap.compute(normalizedEmail, (email, currentNextAllowedAt) -> {
+            if (currentNextAllowedAt != null && currentNextAllowedAt > now) {
+                limited.set(true);
+                return currentNextAllowedAt;
+            }
+            return nextAllowedAt;
+        });
+
+        if (limited.get()) {
+            throw new IllegalStateException(rateLimitMessage());
+        }
+    }
+
+    private String rateLimitMessage() {
+        return "请等待 " + cooldownSeconds + " 秒后再重新获取验证码";
+    }
+
+    private String codeKey(String normalizedEmail) {
+        return CODE_KEY_PREFIX + normalizedEmail;
+    }
+
+    private String limitKey(String normalizedEmail) {
+        return LIMIT_KEY_PREFIX + normalizedEmail;
     }
 
     private record VerificationCode(String code, long createTime) {
