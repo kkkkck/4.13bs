@@ -19,6 +19,9 @@ import java.util.stream.Collectors;
  */
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
+
+    private static final int DEFAULT_DAILY_RATE_DAYS = 7;
+    private static final int MAX_DAILY_RATE_DAYS = 366;
     
     @Autowired
     private PracticeRecordMapper practiceRecordMapper;
@@ -57,7 +60,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     
     @Override
     public List<Map<String, Object>> getDailyCorrectRate(Long userId, Integer days) {
-        int safeDays = days == null || days < 1 ? 7 : Math.min(days, 30);
+        int safeDays = days == null || days < 1 ? DEFAULT_DAILY_RATE_DAYS : Math.min(days, MAX_DAILY_RATE_DAYS);
         Map<LocalDate, Map<String, Object>> existingRows = practiceRecordMapper
                 .selectDailyCorrectRate(userId, safeDays)
                 .stream()
