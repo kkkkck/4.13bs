@@ -1012,7 +1012,7 @@ button {
 
 .profile-content-stack {
   display: grid;
-  gap: 18px;
+  gap: 10px;
 }
 
 .compact-insight-grid {
@@ -1020,21 +1020,22 @@ button {
 }
 
 .profile-chart-grid {
-  grid-template-columns: minmax(280px, 1.15fr) minmax(280px, 0.95fr);
+  gap: 10px;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
 }
 
 .rate-list {
   display: grid;
-  gap: 14px;
+  gap: 8px;
 }
 
 .rate-item {
-  padding: 16px 18px;
-  border-radius: 22px;
+  padding: 10px 12px;
+  border-radius: 12px;
   background: rgba(54, 27, 19, 0.04);
   border: 1px solid rgba(126, 79, 61, 0.08);
   display: grid;
-  gap: 10px;
+  gap: 6px;
 }
 
 .rate-item-head {
@@ -1045,7 +1046,7 @@ button {
 }
 
 .rate-item-head strong {
-  font-size: 17px;
+  font-size: 14px;
 }
 
 .rate-item-head span,
@@ -1054,10 +1055,18 @@ button {
 }
 
 .rate-track {
-  height: 12px;
+  height: 8px;
   border-radius: 999px;
   background: rgba(159, 28, 34, 0.08);
   overflow: hidden;
+}
+
+.chart-meta {
+  justify-content: flex-end;
+}
+
+.profile-page .compact-chart-box {
+  min-height: 140px;
 }
 
 .rate-fill {
@@ -1367,13 +1376,17 @@ button {
   gap: 12px;
 }
 
+.compact-history-list {
+  gap: 8px;
+}
+
 .history-record-card {
-  padding: 16px 18px;
-  border-radius: 18px;
+  padding: 10px 12px;
+  border-radius: 12px;
   background: rgba(54, 27, 19, 0.035);
   border: 1px solid rgba(126, 79, 61, 0.07);
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .history-record-top {
@@ -1387,8 +1400,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 86px;
-  padding: 7px 10px;
+  min-width: 82px;
+  padding: 5px 8px;
   border-radius: 999px;
   background: rgba(159, 28, 34, 0.07);
   color: #9f1c22;

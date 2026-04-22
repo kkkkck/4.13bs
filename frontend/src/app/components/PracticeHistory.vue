@@ -6,7 +6,7 @@
       </div>
     </div>
 
-    <div v-if="items.length" class="history-card-list">
+    <div v-if="items.length" class="history-card-list compact-history-list">
       <article v-for="item in items" :key="item.id" class="history-record-card">
         <div class="history-record-top">
           <div>
@@ -18,7 +18,7 @@
 
         <div class="record-meta">
           <span class="record-pill muted">总题数 {{ item.totalQuestions }}</span>
-          <span class="record-pill muted">已做 {{ completedCount(item) }}</span>
+          <span class="record-pill muted">已做 {{ completedCount(item) }} 题</span>
           <span class="record-pill muted">用时 {{ formatDuration(item.duration) }}</span>
         </div>
       </article>

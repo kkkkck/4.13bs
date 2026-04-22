@@ -22,44 +22,18 @@
       <div v-else class="chart-box compact-chart-box empty-state chart-empty">暂无专题数据。</div>
     </div>
 
-    <div class="secondary-stack">
-      <div class="panel-card">
-        <div class="panel-head">
-          <div>
-            <h3>近期趋势</h3>
-          </div>
+    <div class="panel-card">
+      <div class="panel-head">
+        <div>
+          <h3>近期趋势</h3>
         </div>
-        <div v-if="trendData.length" ref="lineRef" class="chart-box compact-chart-box"></div>
-        <div v-else class="chart-box compact-chart-box empty-state chart-empty">暂无趋势数据。</div>
-      </div>
-
-      <div class="panel-card">
-        <div class="panel-head compact">
-          <div>
-            <h3>趋势概览</h3>
-          </div>
-        </div>
-
-        <div class="modal-body-stack">
-          <div class="insight-grid compact-insight-grid">
-            <article class="feature-card insight-card compact">
-              <span class="eyebrow">最近记录</span>
-              <strong>{{ latestRateLabel }}</strong>
-              <p>{{ latestDateLabel }}</p>
-            </article>
-            <article class="feature-card insight-card compact">
-              <span class="eyebrow">变化</span>
-              <strong>{{ trendDirectionLabel }}</strong>
-              <p>{{ trendDirectionCopy }}</p>
-            </article>
-            <article class="feature-card insight-card compact">
-              <span class="eyebrow">样本</span>
-              <strong>{{ sampleDaysLabel }}</strong>
-              <p>{{ sampleCountLabel }}</p>
-            </article>
-          </div>
+        <div class="record-meta chart-meta">
+          <span class="record-pill muted">{{ practicedDaysLabel }}</span>
+          <span class="record-pill muted">{{ practicedQuestionLabel }}</span>
         </div>
       </div>
+      <div v-if="trendData.length" ref="lineRef" class="chart-box compact-chart-box"></div>
+      <div v-else class="chart-box compact-chart-box empty-state chart-empty">暂无趋势数据。</div>
     </div>
   </div>
 </template>
@@ -93,44 +67,8 @@ const sortedCategoryData = computed(() =>
 )
 
 const practicedTrendData = computed(() => props.trendData.filter((item) => item.totalCount > 0))
-const latestTrend = computed(() => practicedTrendData.value.at(-1) || props.trendData.at(-1) || null)
-const previousTrend = computed(() => (
-  practicedTrendData.value.length > 1 ? practicedTrendData.value.at(-2) || null : null
-))
-const latestRateLabel = computed(() => (latestTrend.value ? `${latestTrend.value.correctRate}%` : '-'))
-const latestDateLabel = computed(() => (latestTrend.value && latestTrend.value.totalCount > 0 ? latestTrend.value.date : '暂无练习记录'))
-const trendDelta = computed(() => {
-  if (!latestTrend.value || !previousTrend.value) {
-    return 0
-  }
-  return Math.round((latestTrend.value.correctRate - previousTrend.value.correctRate) * 100) / 100
-})
-const trendDirectionLabel = computed(() => {
-  if (!latestTrend.value || !previousTrend.value) {
-    return '暂无对比'
-  }
-  if (trendDelta.value > 0) {
-    return `上升 ${trendDelta.value}%`
-  }
-  if (trendDelta.value < 0) {
-    return `回落 ${Math.abs(trendDelta.value)}%`
-  }
-  return '基本持平'
-})
-const trendDirectionCopy = computed(() => {
-  if (!latestTrend.value || !previousTrend.value) {
-    return '至少两天有记录后显示变化。'
-  }
-  if (trendDelta.value > 0) {
-    return '较上一有记录日提高。'
-  }
-  if (trendDelta.value < 0) {
-    return '较上一有记录日降低。'
-  }
-  return '与上一有记录日持平。'
-})
-const sampleDaysLabel = computed(() => `${practicedTrendData.value.length}/${props.trendData.length} 天`)
-const sampleCountLabel = computed(() => `共 ${practicedTrendData.value.reduce((sum, item) => sum + item.totalCount, 0)} 题`)
+const practicedDaysLabel = computed(() => `${practicedTrendData.value.length}/${props.trendData.length} 天有记录`)
+const practicedQuestionLabel = computed(() => `${practicedTrendData.value.reduce((sum, item) => sum + item.totalCount, 0)} 题`)
 const disposeLine = () => {
   lineChart?.dispose()
   lineChart = null

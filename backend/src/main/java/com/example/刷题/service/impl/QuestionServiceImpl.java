@@ -600,7 +600,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private static Map<Long, Integer> buildMockExamRootWeights() {
         Map<Long, Integer> weights = new LinkedHashMap<>();
         weights.put(1L, 22);
-        weights.put(2L, 35);
+        weights.put(2L, 13);
+        weights.put(6L, 22);
         weights.put(3L, 15);
         weights.put(4L, 15);
         weights.put(5L, 13);

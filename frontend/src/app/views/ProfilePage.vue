@@ -30,38 +30,6 @@
     <div v-if="loading" class="panel-card empty-state">正在加载个人数据...</div>
 
     <template v-else>
-      <section class="panel-card">
-        <div class="compact-row-list">
-          <div class="compact-row compact-row-static">
-            <div class="compact-row-main">
-              <strong>最高正确率</strong>
-              <div class="compact-row-meta">
-                <span>{{ bestCategory?.categoryName || '-' }}</span>
-                <span>{{ bestCategory ? `${bestCategory.correctRate}%` : '暂无记录' }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="compact-row compact-row-static">
-            <div class="compact-row-main">
-              <strong>最低正确率</strong>
-              <div class="compact-row-meta">
-                <span>{{ weakestCategory?.categoryName || '-' }}</span>
-                <span>{{ weakestCategory ? `${weakestCategory.correctRate}%` : '暂无记录' }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="compact-row compact-row-static">
-            <div class="compact-row-main">
-              <strong>练习时长</strong>
-              <div class="compact-row-meta">
-                <span>{{ totalDurationLabel }}</span>
-                <span>{{ latestPracticeLabel === '-' ? '暂无练习记录' : `${latestPracticeLabel} · 共 ${sortedHistory.length} 次记录` }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="profile-content-stack">
         <StatisticsChart :category-data="categoryRates" :trend-data="dailyRates" />
         <PracticeHistory :items="sortedHistory" :categories="categories" />
@@ -101,42 +69,6 @@ const history = ref<PracticeRecord[]>([])
 const sortedHistory = computed(() =>
   [...history.value].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
 )
-const bestCategory = computed(() => {
-  return [...categoryRates.value].sort((left, right) => {
-    if (right.correctRate !== left.correctRate) {
-      return right.correctRate - left.correctRate
-    }
-    return right.totalCount - left.totalCount
-  })[0] || null
-})
-const weakestCategory = computed(() => {
-  return [...categoryRates.value].sort((left, right) => {
-    if (left.correctRate !== right.correctRate) {
-      return left.correctRate - right.correctRate
-    }
-    return right.totalCount - left.totalCount
-  })[0] || null
-})
-const latestPracticeLabel = computed(() => {
-  const latest = sortedHistory.value[0]
-  if (!latest) {
-    return '-'
-  }
-  return new Date(latest.createdAt).toLocaleDateString('zh-CN')
-})
-const totalDurationLabel = computed(() => {
-  const seconds = sortedHistory.value.reduce((sum, item) => sum + item.duration, 0)
-  if (seconds < 60) {
-    return `${seconds} 秒`
-  }
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) {
-    return `${minutes} 分钟`
-  }
-  const hours = Math.floor(minutes / 60)
-  const remainMinutes = minutes % 60
-  return `${hours} 小时 ${remainMinutes} 分`
-})
 
 const loadProfile = async () => {
   loading.value = true
