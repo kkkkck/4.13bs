@@ -27,6 +27,8 @@ public interface UserService extends IService<User> {
 
     void changePassword(Long userId, String currentPassword, String newPassword);
 
+    void resetPasswordByEmail(String email, String newPassword);
+
     Map<String, Object> getUserList(
             Integer page,
             Integer size,

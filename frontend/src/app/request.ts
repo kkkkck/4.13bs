@@ -62,7 +62,7 @@ service.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       localStorage.removeItem('role')
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      if (!['/login', '/register', '/forgot-password'].includes(window.location.pathname)) {
         const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`
         window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`
       }

@@ -59,18 +59,8 @@
               {{ countdown > 0 ? `${countdown}s` : sendingCode ? '发送中...' : '发送验证码' }}
             </button>
           </div>
+          <small v-if="codeSent" class="form-tip">验证码已发送，{{ expireMinutes }}分钟内有效</small>
         </label>
-
-        <div class="auth-status-grid">
-          <article class="auth-status-card">
-            <span>发送状态</span>
-            <strong>{{ deliveryStatus }}</strong>
-          </article>
-          <article class="auth-status-card">
-            <span>验证码时效</span>
-            <strong>{{ expiresText }}</strong>
-          </article>
-        </div>
 
         <div v-if="debugCode" class="dev-code-card">
           <strong>开发环境验证码</strong>
@@ -81,7 +71,6 @@
           <small>当前环境未启用真实邮箱发送，因此会直接展示验证码。</small>
         </div>
 
-        <p v-if="success" class="form-success">{{ success }}</p>
         <p v-if="error" class="form-error">{{ error }}</p>
 
         <button class="primary-btn" :disabled="loading" type="submit">
@@ -118,9 +107,9 @@ const loading = ref(false)
 const sendingCode = ref(false)
 const countdown = ref(0)
 const error = ref('')
-const success = ref('')
 const debugCode = ref('')
 const expiresInSeconds = ref(300)
+const codeSent = ref(false)
 const passwordVisible = ref(false)
 
 let timer: number | null = null
@@ -128,10 +117,7 @@ let timer: number | null = null
 const normalizedEmail = computed(() => form.email.trim().toLowerCase())
 const normalizedNickname = computed(() => form.nickname.trim())
 const canSendCode = computed(() => !sendingCode.value && countdown.value === 0 && isEmailValid(normalizedEmail.value))
-const deliveryStatus = computed(() =>
-  debugCode.value ? '当前环境会展示调试验证码' : '验证码将发送到你的邮箱'
-)
-const expiresText = computed(() => `${Math.max(1, Math.round(expiresInSeconds.value / 60))} 分钟内有效`)
+const expireMinutes = computed(() => Math.max(1, Math.round(expiresInSeconds.value / 60)))
 
 const isEmailValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
@@ -157,8 +143,8 @@ const fillDebugCode = () => {
 
 const handleSendCode = async () => {
   error.value = ''
-  success.value = ''
   debugCode.value = ''
+  codeSent.value = false
 
   if (!normalizedEmail.value) {
     error.value = '请先输入邮箱'
@@ -173,9 +159,9 @@ const handleSendCode = async () => {
   sendingCode.value = true
   try {
     const result = await sendCode(normalizedEmail.value)
-    success.value = result.message || '验证码已发送'
     debugCode.value = result.debugCode || ''
     expiresInSeconds.value = result.expiresInSeconds || 300
+    codeSent.value = true
     if (debugCode.value) {
       form.code = debugCode.value
     }
@@ -189,7 +175,6 @@ const handleSendCode = async () => {
 
 const handleSubmit = async () => {
   error.value = ''
-  success.value = ''
 
   if (!normalizedNickname.value || !normalizedEmail.value || !form.password || !form.code.trim()) {
     error.value = '请填写完整注册信息'

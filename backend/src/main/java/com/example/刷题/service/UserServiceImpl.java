@@ -214,6 +214,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    public void resetPasswordByEmail(String email, String newPassword) {
+        User user = findByEmail(normalizeEmail(email));
+        if (user == null || user.getStatus() == null || user.getStatus() != 1) {
+            throw new BusinessException(404, "用户不存在或已被禁用");
+        }
+
+        if (!StringUtils.hasText(newPassword) || newPassword.length() < 6 || newPassword.length() > 32) {
+            throw new BusinessException("新密码长度需在 6 到 32 位之间");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new BusinessException("新密码不能与当前密码相同");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        updateById(user);
+    }
+
+    @Override
     public Map<String, Object> getUserList(
             Integer page,
             Integer size,

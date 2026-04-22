@@ -25,6 +25,13 @@ export interface ChangePasswordRequest {
   confirmPassword: string
 }
 
+export interface ResetPasswordRequest {
+  email: string
+  code: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface AuthResult {
   token: string
   user: User
@@ -59,6 +66,14 @@ export function updateCurrentUserProfile(payload: UpdateProfileRequest) {
 
 export function changeCurrentUserPassword(payload: ChangePasswordRequest) {
   return request.put<void>('/auth/password', payload)
+}
+
+export function sendPasswordResetCode(email: string) {
+  return request.post<SendCodeResult>('/auth/password/reset-code', { email })
+}
+
+export function resetPassword(payload: ResetPasswordRequest) {
+  return request.post<void>('/auth/password/reset', payload)
 }
 
 export function sendProfileEmailCode() {

@@ -51,7 +51,10 @@
 
       <div class="support-line">
         <span>没有账号？</span>
-        <RouterLink to="/register">去注册</RouterLink>
+        <div class="support-links">
+          <RouterLink to="/register">去注册</RouterLink>
+          <RouterLink to="/forgot-password">忘记密码</RouterLink>
+        </div>
       </div>
     </section>
   </div>

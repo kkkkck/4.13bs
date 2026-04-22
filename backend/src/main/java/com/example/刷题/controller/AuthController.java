@@ -5,6 +5,7 @@ import com.example.刷题.dto.ChangePasswordRequest;
 import com.example.刷题.common.Result;
 import com.example.刷题.dto.LoginRequest;
 import com.example.刷题.dto.RegisterRequest;
+import com.example.刷题.dto.ResetPasswordRequest;
 import com.example.刷题.dto.SendCodeRequest;
 import com.example.刷题.dto.SendCodeResponse;
 import com.example.刷题.dto.UpdateProfileRequest;
@@ -101,6 +102,37 @@ public class AuthController {
         result.put("token", token);
         result.put("user", user);
         return Result.success(result);
+    }
+
+    @PostMapping("/password/reset-code")
+    public Result<SendCodeResponse> sendPasswordResetCode(@Validated @RequestBody SendCodeRequest request) {
+        String email = normalizeEmail(request.getEmail());
+        User user = userService.findByEmail(email);
+        if (user == null || user.getStatus() == null || user.getStatus() != 1) {
+            return Result.fail(404, "该邮箱未注册或账号已被禁用");
+        }
+
+        return sendVerificationCode(
+                email,
+                "验证码已发送，请注意查收邮箱",
+                "验证码已生成。当前环境启用调试模式，已直接返回开发验证码。"
+        );
+    }
+
+    @PostMapping("/password/reset")
+    public Result<Void> resetPassword(@Validated @RequestBody ResetPasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException("两次输入的新密码不一致");
+        }
+
+        String email = normalizeEmail(request.getEmail());
+        String code = request.getCode() == null ? "" : request.getCode().trim();
+        if (!verificationCodeService.verifyCode(email, code)) {
+            return Result.fail("验证码错误或已过期");
+        }
+
+        userService.resetPasswordByEmail(email, request.getNewPassword());
+        return Result.success();
     }
 
     @GetMapping("/me")

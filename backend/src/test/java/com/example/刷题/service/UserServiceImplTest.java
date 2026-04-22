@@ -142,6 +142,47 @@ class UserServiceImplTest {
     }
 
     @Test
+    void resetPasswordByEmailStoresNewEncodedPassword() {
+        User user = new User();
+        user.setId(7L);
+        user.setEmail("user@example.com");
+        user.setPassword("old-encoded-password");
+        user.setStatus(1);
+
+        when(userMapper.findByEmail("user@example.com")).thenReturn(user);
+        when(passwordEncoder.matches("newSecret123", "old-encoded-password")).thenReturn(false);
+        when(passwordEncoder.encode("newSecret123")).thenReturn("new-encoded-password");
+
+        AtomicReference<User> updatedUser = new AtomicReference<>();
+        doAnswer(invocation -> {
+            updatedUser.set(invocation.getArgument(0));
+            return true;
+        }).when(service).updateById(any(User.class));
+
+        service.resetPasswordByEmail("User@Example.com", "newSecret123");
+
+        assertEquals("new-encoded-password", updatedUser.get().getPassword());
+    }
+
+    @Test
+    void resetPasswordByEmailRejectsDisabledUser() {
+        User user = new User();
+        user.setId(7L);
+        user.setEmail("user@example.com");
+        user.setStatus(0);
+
+        when(userMapper.findByEmail("user@example.com")).thenReturn(user);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> service.resetPasswordByEmail("user@example.com", "newSecret123")
+        );
+
+        assertEquals(404, exception.getCode());
+        assertEquals("用户不存在或已被禁用", exception.getMessage());
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void getUserListFiltersInactiveUsersAndSortsNullLastForLastSeenDesc() {
         User active = buildUser(1L, "active@example.com", "ActiveNick", LocalDateTime.now().minusDays(2));

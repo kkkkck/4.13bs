@@ -18,6 +18,12 @@ const router = createRouter({
       meta: { title: '注册', public: true }
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('@/app/views/ForgotPasswordPage.vue'),
+      meta: { title: '重置密码', public: true }
+    },
+    {
       path: '/',
       component: () => import('@/app/layouts/ConsoleLayout.vue'),
       meta: { requiresAuth: true },
@@ -116,7 +122,7 @@ router.beforeEach(async (to) => {
     document.title = `${String(to.meta.title)} | 刷题`
   }
 
-  if (to.meta.public && authStore.isLoggedIn && (to.path === '/login' || to.path === '/register')) {
+  if (to.meta.public && authStore.isLoggedIn && (to.path === '/login' || to.path === '/register' || to.path === '/forgot-password')) {
     return '/dashboard'
   }
 
