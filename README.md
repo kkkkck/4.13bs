@@ -177,3 +177,13 @@ mysql --default-character-set=utf8mb4 -uroot -p question_bank < deploy/seed_kyzz
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
 ```
+## 答辩和学习入口
+
+如果你是第一次从零理解这个项目，先按下面顺序读：
+
+1. `docs/DEFENSE_SCRIPT_ZERO_BASE.md`：先背会怎么向老师介绍项目。
+2. `docs/PROJECT_WALKTHROUGH.md`：完全零基础版，从“前端/后端/数据库是什么”开始讲。
+3. `docs/CLOUD_SERVER_BEGINNER_PLAYBOOK.md`：后续买云服务器时按步骤部署。
+4. `frontend/src/app/router.ts`、`frontend/src/app/request.ts`、`backend/src/main/java/com/example/刷题/config/SecurityConfig.java`：理解前后端怎么连起来。
+
+下面保留的是项目原有运行和数据导入说明。

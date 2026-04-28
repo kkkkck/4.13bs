@@ -12,9 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 统计控制器
- */
 @RestController
 @RequestMapping("/api/statistics")
 public class StatisticsController {
@@ -22,9 +19,6 @@ public class StatisticsController {
     @Autowired
     private StatisticsService statisticsService;
     
-    /**
-     * 获取用户统计概览
-     */
     @GetMapping("/overview")
     public ResponseEntity<Map<String, Object>> getOverview() {
         Long userId = getCurrentUserId();
@@ -37,18 +31,12 @@ public class StatisticsController {
         return ResponseEntity.ok(result);
     }
     
-    /**
-     * 获取各分类正确率统计
-     */
     @GetMapping("/category-rate")
     public ResponseEntity<List<Map<String, Object>>> getCategoryCorrectRate() {
         Long userId = getCurrentUserId();
         return ResponseEntity.ok(statisticsService.getCorrectRateByCategory(userId));
     }
     
-    /**
-     * 获取近期正确率趋势
-     */
     @GetMapping("/daily-rate")
     public ResponseEntity<List<Map<String, Object>>> getDailyCorrectRate(
             @RequestParam(defaultValue = "7") Integer days) {
@@ -56,9 +44,6 @@ public class StatisticsController {
         return ResponseEntity.ok(statisticsService.getDailyCorrectRate(userId, days));
     }
     
-    /**
-     * 获取练习历史记录
-     */
     @GetMapping("/history")
     public ResponseEntity<List<PracticeRecord>> getHistory(
             @RequestParam(defaultValue = "10") Integer limit) {
@@ -66,9 +51,6 @@ public class StatisticsController {
         return ResponseEntity.ok(statisticsService.getRecentRecords(userId, limit));
     }
     
-    /**
-     * 创建练习记录
-     */
     @PostMapping("/record")
     public ResponseEntity<Map<String, Object>> createRecord(@RequestBody PracticeRecord record) {
         Long userId = getCurrentUserId();
@@ -82,9 +64,6 @@ public class StatisticsController {
         return ResponseEntity.ok(result);
     }
     
-    /**
-     * 从Security上下文获取当前用户ID
-     */
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return Long.parseLong(auth.getName());

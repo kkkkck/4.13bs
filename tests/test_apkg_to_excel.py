@@ -43,7 +43,7 @@ class ApkgToExcelTests(unittest.TestCase):
         self.assertEqual("解析内容", record["jiexi"])
         self.assertEqual("模拟题", record["sourceType"])
         self.assertEqual("马克思主义基本原理概论", record["top_kaodian_text"])
-        self.assertEqual("第二章 世界的物质性及发展规律", record["p_kaodian_text"])
+        self.assertEqual("专题二：辩证唯物主义世界观", record["p_kaodian_text"])
 
     def test_parse_decrypted_note_falls_back_to_inline_options(self) -> None:
         note = {
@@ -86,8 +86,52 @@ class ApkgToExcelTests(unittest.TestCase):
             fallback_category_id=99,
         )
 
-        self.assertEqual("第六章 “三个代表”重要思想", record["p_kaodian_text"])
-        self.assertEqual(2010, record["__resolved_category_id__"])
+        self.assertEqual("第七章 “三个代表”重要思想", record["p_kaodian_text"])
+        self.assertEqual(2008, record["__resolved_category_id__"])
+
+    def test_parse_decrypted_note_infers_split_current_chapter_from_old_five_in_one_bucket(self) -> None:
+        note = {
+            "note_id": 4,
+            "deck_name": "22版《肖秀荣1000题》::02毛中特::第10章“05位01体”总体布局::单选",
+            "question": "1.社会主义核心价值观的根本特性是",
+            "options": ["人民性", "斗争性", "超越性", "抽象性"],
+            "answer": "A",
+            "analysis": "【简析】人民性是社会主义核心价值观的根本特性。",
+            "bodyText": "",
+            "errorText": "",
+        }
+
+        record = converter.parse_decrypted_note(
+            note=note,
+            source="22版《肖秀荣1000题》",
+            source_type="模拟题",
+            fallback_category_id=99,
+        )
+
+        self.assertEqual("第10章 建设社会主义文化强国", record["p_kaodian_text"])
+        self.assertEqual(2111, record["__resolved_category_id__"])
+
+    def test_parse_decrypted_note_infers_split_current_chapter_from_old_four_comprehensives_bucket(self) -> None:
+        note = {
+            "note_id": 5,
+            "deck_name": "22版《肖秀荣1000题》::02毛中特::第11章“04个全面”战略布局::单选",
+            "question": "1.全面建成小康社会更强调的是全面",
+            "options": ["覆盖的人口更多", "覆盖的领域更全面", "实现的速度更快", "增长的总量更大"],
+            "answer": "B",
+            "analysis": "【简析】全面建成小康社会强调领域、人口和区域的全面协调推进。",
+            "bodyText": "",
+            "errorText": "",
+        }
+
+        record = converter.parse_decrypted_note(
+            note=note,
+            source="22版《肖秀荣1000题》",
+            source_type="模拟题",
+            fallback_category_id=99,
+        )
+
+        self.assertEqual("第2章 以中国式现代化全面推进中华民族伟大复兴", record["p_kaodian_text"])
+        self.assertEqual(2103, record["__resolved_category_id__"])
 
     def test_build_namespaced_category_catalog_avoids_default_chapter_id_range(self) -> None:
         records = [

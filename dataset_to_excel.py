@@ -40,6 +40,8 @@ from pathlib import Path
 from typing import Any, Iterable
 from xml.sax.saxutils import escape
 
+import politics_syllabus
+
 
 HEADERS = [
     "content",
@@ -351,11 +353,12 @@ def collect_input_paths(input_path: Path) -> list[Path]:
 
 def annotate_records(records: list[dict[str, Any]], source_path: Path) -> list[dict[str, Any]]:
     annotated: list[dict[str, Any]] = []
-    for record in records:
+    for index, record in enumerate(records, start=1):
         item = dict(record)
         item.setdefault("__source_file__", source_path.name)
         item.setdefault("__source_stem__", source_path.stem)
         item.setdefault("__source_path__", source_path.as_posix())
+        item.setdefault("__record_index__", index)
         annotated.append(item)
     return annotated
 
@@ -625,10 +628,156 @@ def build_tags(record: dict[str, Any], mapping: dict[str, list[str]]) -> str:
     return ",".join(fragments)
 
 
+def is_kyzz_record(record: dict[str, Any]) -> bool:
+    source_path = stringify(record.get("__source_path__")).replace("\\", "/").lower()
+    return "dataset/kyzz/data/" in source_path
+
+
+def infer_kyzz_question_number(record: dict[str, Any]) -> int | None:
+    return parse_int(record.get("num") or record.get("__record_index__"))
+
+
+def infer_kyzz_root_category_id(record: dict[str, Any]) -> int | None:
+    question_number = infer_kyzz_question_number(record)
+    if question_number is None:
+        return None
+
+    if 1 <= question_number <= 4:
+        return 1
+    if 5 <= question_number <= 8:
+        return 2
+    if 9 <= question_number <= 12:
+        return 3
+    if 13 <= question_number <= 14:
+        return 4
+    if 15 <= question_number <= 16:
+        return 5
+    if 17 <= question_number <= 21:
+        return 1
+    if 22 <= question_number <= 26:
+        return 2
+    if 27 <= question_number <= 29:
+        return 3
+    if 30 <= question_number <= 31:
+        return 4
+    if 32 <= question_number <= 33:
+        return 5
+    return None
+
+
+def infer_kyzz_chapter_name(record: dict[str, Any], root_id: int) -> str:
+    text = "\n".join(
+        value
+        for value in (
+            stringify(record.get("title")),
+            stringify(record.get("jiexi")),
+            stringify(record.get("analysis")),
+        )
+        if value
+    )
+
+    keyword_groups: dict[int, list[tuple[str, tuple[str, ...]]]] = {
+        1: [
+            ("专题一：马克思主义观", ("马克思主义", "恩格斯", "马克思", "共产主义社会的基本特征", "人的自由而全面的发展", "马克思主义中国化")),
+            ("专题二：辩证唯物主义世界观", ("物质", "意识", "运动", "静止", "时空", "唯物辩证法", "量变", "质变", "对立统一", "否定之否定", "规律", "必然", "偶然")),
+            ("专题三：辩证唯物主义认识论", ("实践", "认识", "真理", "价值", "感性认识", "理性认识", "认识过程", "主观能动性")),
+            ("专题四：唯物史观", ("社会存在", "社会意识", "生产力", "生产关系", "经济基础", "上层建筑", "人民群众", "历史人物", "社会形态", "科学技术", "历史经验", "唯物史观", "历史创造者")),
+            ("专题五：资本主义论（上）", ("剩余价值", "劳动力", "货币转化为资本", "资本主义的本质", "商品", "价值规律", "资本积累", "雇佣劳动")),
+            ("专题六：资本主义论（下）", ("垄断", "帝国主义", "经济全球化", "国家垄断资本主义", "金融资本", "国际垄断同盟", "资本主义的发展及其趋势")),
+            ("专题七：社会主义论", ("社会主义", "苏联", "社会主义制度", "社会主义改革", "科学社会主义", "社会主义建设")),
+            ("专题八：共产主义论", ("共产主义", "自由王国", "人类解放")),
+        ],
+        2: [
+            ("第一章 毛泽东思想及其历史地位", ("毛泽东思想", "实事求是", "群众路线", "独立自主")),
+            ("第二章 新民主主义革命理论", ("新民主主义", "农村包围城市", "统一战线", "武装斗争", "党的建设", "三大法宝", "中国革命", "革命道路")),
+            ("第三章 社会主义改造理论", ("社会主义改造", "三大改造", "过渡时期总路线", "新民主主义社会")),
+            ("第四章 社会主义建设道路初步探索的理论成果", ("论十大关系", "人民内部矛盾", "社会主义建设道路", "第二次结合")),
+            ("第五章 中国特色社会主义理论体系的形成发展", ("中国特色社会主义理论体系", "马克思主义中国化时代化")),
+            ("第六章 邓小平理论", ("邓小平理论", "社会主义初级阶段", "三个有利于", "发展才是硬道理", "改革发展稳定", "共同富裕", "社会主义本质")),
+            ("第七章 “三个代表”重要思想", ("三个代表", "执政兴国的第一要务", "先进生产力", "先进文化", "最广大人民根本利益")),
+            ("第八章 科学发展观", ("科学发展观", "以人为本", "全面协调可持续")),
+            ("第1章 新时代坚持和发展中国特色社会主义", ("新时代中国特色社会主义思想", "坚持和发展中国特色社会主义", "核心要义", "新时代坚持和发展中国特色社会主义")),
+            ("第2章 以中国式现代化全面推进中华民族伟大复兴", ("中国式现代化", "中华民族伟大复兴", "中国梦", "强国建设", "脱贫攻坚", "全面建成小康社会", "小康社会")),
+            ("第3章 坚持党的全面领导", ("坚持党的全面领导", "党的领导制度", "党中央集中统一领导", "党的建设新的伟大工程", "群众路线", "执政本领")),
+            ("第4章 坚持以人民为中心", ("以人民为中心", "人民至上", "人民立场", "共享发展成果", "增进民生福祉")),
+            ("第5章 全面深化改革开放", ("全面深化改革", "改革开放", "制度型开放", "外商投资法", "自贸港", "对外开放", "走出去")),
+            ("第6章 推动高质量发展", ("高质量发展", "新发展理念", "现代化经济体系", "双循环", "乡村振兴", "三农", "实体经济", "区域协调发展", "创新、协调、绿色、开放、共享", "创新驱动", "数字经济", "粮食安全", "藏粮于地", "现代化产业体系", "土地流转", "三权分置", "农村基本经营制度", "农业经营方式", "农业专业合作社")),
+            ("第7章 社会主义现代化建设的教育、科技、人才战略", ("教育", "科技", "人才", "科教兴国", "战略支撑")),
+            ("第8章 发展全过程人民民主", ("全过程人民民主", "人民当家作主", "社会主义民主政治", "基层民主", "政治发展道路", "基层群众自治", "协商民主")),
+            ("第9章 全面依法治国", ("全面依法治国", "法治国家", "法治政府", "法治社会")),
+            ("第10章 建设社会主义文化强国", ("文化强国", "文化自信", "社会主义核心价值观", "社会主义核心价值体系", "公共文化服务", "文化体制改革", "文化事业", "文化产业")),
+            ("第11章 以保障和改善民生为重点加强社会建设", ("民生", "社会保障", "就业", "健康中国", "群众利益", "人民健康", "社会建设", "社会治理", "枫桥经验")),
+            ("第12章 建设社会主义生态文明", ("生态文明", "资源节约型", "环境友好型", "环境保护", "美丽中国", "绿色发展", "节约资源", "生态环境")),
+            ("第13章 维护和塑造国家安全", ("总体国家安全观", "国家安全", "平安中国", "政治安全", "人民安全", "国家利益至上")),
+            ("第14章 建设巩固国防和强大人民军队", ("国防", "军队", "强军", "人民军队", "国防和军队现代化")),
+            ("第15章 坚持“一国两制”和推进祖国完全统一", ("一国两制", "祖国完全统一", "和平统一", "港澳", "台湾", "西藏", "民族问题")),
+            ("第16章 中国特色大国外交和推动构建人类命运共同体", ("人类命运共同体", "中国特色大国外交", "和平发展道路", "东盟", "二十国", "国际社会", "全球经济失衡")),
+            ("第17章 全面从严治党", ("全面从严治党", "党要管党", "党的建设", "学习型政党", "党的自我革命")),
+        ],
+        3: [
+            ("第一章 进入近代后中华民族的磨难与抗争", ("鸦片战争", "南京条约", "望厦条约", "黄埔条约", "列强侵略", "外国侵略", "民族危机", "资本—帝国主义列强对中国的侵略")),
+            ("第二章 不同社会力量对国家出路的早期探索", ("洋务运动", "太平天国", "戊戌维新", "早期探索")),
+            ("第三章 辛亥革命与君主专制制度的终结", ("辛亥革命", "三民主义", "君主专制", "临时约法")),
+            ("第四章 中国共产党成立和中国革命新局面", ("五四运动", "十月革命", "马克思主义在中国", "中国共产党成立", "新文化运动", "国民革命")),
+            ("第五章 中国革命的新道路", ("农村包围城市", "土地革命", "长征", "武装夺取政权", "中国革命的新道路")),
+            ("第六章 中华民族的抗日战争", ("抗日战争", "皖南事变", "抗日民族统一战线", "敌后战场", "游击战争")),
+            ("第七章 为建立新中国而奋斗", ("解放战争", "第二条战线", "新中国成立前夕", "为建立新中国而奋斗", "政治协商会议", "和平建国", "政协协议")),
+            ("第八章 中华人民共和国的成立与中国社会主义建设道路的探索", ("中华人民共和国成立", "人民代表大会制度", "社会主义基本制度", "论十大关系", "人民内部矛盾", "社会主义建设道路的探索")),
+            ("第九章 改革开放与中国特色社会主义的开创和发展", ("改革开放", "十一届三中全会", "中国特色社会主义道路", "中国特色社会主义理论体系", "农村改革", "人民公社", "突破性进展")),
+            ("第十章 中国特色社会主义进入新时代", ("中国特色社会主义进入新时代", "新时代")),
+        ],
+        4: [
+            ("第一章 领悟人生真谛 把握人生方向", ("人生观", "人生真谛", "幸福观", "价值观")),
+            ("第二章 追求远大理想 坚定崇高信念", ("理想信念", "远大理想", "崇高信念")),
+            ("第三章 继承优良传统 弘扬中国精神", ("爱国主义", "民族精神", "时代精神", "中国精神", "祖国", "民族复兴")),
+            ("第四章 明确价值要求 践行价值准则", ("社会主义核心价值观", "核心价值体系", "价值准则")),
+            ("第五章 遵守道德规范 锤炼道德品格", ("道德", "品格", "公民道德", "职业道德", "家庭美德", "品德", "诚实守信")),
+            ("第六章 学习法治思想 提升法治素养", ("法治", "依法治国", "宪法", "法律权利", "法律义务", "社会主义法治理念", "刑法", "诉讼", "调解", "法律权威")),
+        ],
+    }
+
+    for chapter_name, keywords in keyword_groups.get(root_id, []):
+        if any(keyword in text for keyword in keywords):
+            return chapter_name
+    return ""
+
+
+def infer_kyzz_content_root_category_id(record: dict[str, Any]) -> int | None:
+    text = "\n".join(
+        value
+        for value in (
+            stringify(record.get("title")),
+            stringify(record.get("jiexi")),
+            stringify(record.get("analysis")),
+        )
+        if value
+    )
+
+    root_keywords = (
+        (5, ("世界贸易组织", "中俄建交", "国际进口博览会", "进博会", "国际经济论坛", "二十国领导人", "德班", "联合国气候变化框架公约", "国际社会", "峰会", "世界500强", "贸易伙伴")),
+        (3, ("鸦片战争", "南京条约", "望厦条约", "黄埔条约", "太平天国", "洋务运动", "戊戌维新", "辛亥革命", "五四运动", "中国共产党成立", "抗日战争", "解放战争", "新民主主义社会", "列强侵略", "农村改革", "人民公社", "政治协商会议", "和平建国")),
+        (4, ("人生观", "理想信念", "爱国主义", "民族精神", "时代精神", "公民道德", "职业道德", "诚实守信", "法律权威", "刑法", "诉讼", "调解", "依法治国", "社会主义法治理念")),
+        (2, ("中国特色社会主义理论体系", "共同富裕", "改革开放", "新发展理念", "高质量发展", "现代化经济体系", "文化强国", "生态文明", "国家安全", "一国两制", "全面从严治党", "社会主义初级阶段", "邓小平理论", "三个代表", "科学发展观", "群众路线", "执政本领")),
+        (1, ("马克思主义", "物质", "意识", "实践", "认识", "真理", "社会存在", "生产力", "剩余价值", "资本主义", "社会主义", "共产主义", "必然", "偶然", "人民群众", "唯物史观")),
+    )
+    for root_id, keywords in root_keywords:
+        if any(keyword in text for keyword in keywords):
+            return root_id
+
+    matched_roots = [root_id for root_id in (1, 2, 3, 4) if infer_kyzz_chapter_name(record, root_id)]
+    if len(matched_roots) == 1:
+        return matched_roots[0]
+    return None
+
+
 def infer_root_category_id(record: dict[str, Any], default_category_id: int) -> int:
     explicit = parse_int(record.get("categoryId"))
     if explicit is not None:
         return explicit
+
+    canonical_root = infer_root_from_canonical_chapter_name(record)
+    if canonical_root is not None:
+        return canonical_root
 
     topic_candidates = [
         stringify(record.get("top_kaodian_text")),
@@ -648,7 +797,52 @@ def infer_root_category_id(record: dict[str, Any], default_category_id: int) -> 
     for category_id, keywords in CATEGORY_KEYWORD_MAP.items():
         if any(keyword in merged for keyword in keywords):
             return category_id
+
+    if is_kyzz_record(record):
+        content_root_id = infer_kyzz_content_root_category_id(record)
+        if content_root_id is not None:
+            return content_root_id
+        kyzz_root_id = infer_kyzz_root_category_id(record)
+        if kyzz_root_id is not None:
+            return kyzz_root_id
     return default_category_id
+
+
+def infer_theory_section_hint(record: dict[str, Any]) -> str | None:
+    merged = " ".join(
+        value
+        for value in (
+            stringify(record.get("top_kaodian_text")),
+            stringify(record.get("kaodian_level_text")),
+            stringify(record.get("kaodian")),
+            stringify(record.get("tags")),
+        )
+        if value
+    )
+    if "新时代中国特色社会主义思想" in merged or "习近平新时代中国特色社会主义思想" in merged:
+        return "xijinping"
+    if "毛泽东思想和中国特色社会主义理论体系概论" in merged or "毛泽东思想" in merged:
+        return "maozhongte"
+    return None
+
+
+def infer_root_from_canonical_chapter_name(record: dict[str, Any]) -> int | None:
+    chapter_name = stringify(record.get("p_kaodian_text"))
+    if not chapter_name:
+        return None
+
+    matched_roots = [
+        root_id
+        for root_id in (1, 2, 3, 4)
+        if politics_syllabus.resolve_canonical_category_id(
+            root_id,
+            chapter_name,
+            section_hint=infer_theory_section_hint(record),
+        ) is not None
+    ]
+    if len(matched_roots) == 1:
+        return matched_roots[0]
+    return None
 
 
 def chapter_sort_key(name: str) -> tuple[int, int, str]:
@@ -667,6 +861,10 @@ def chapter_sort_key(name: str) -> tuple[int, int, str]:
 
 
 def build_category_catalog(records: list[dict[str, Any]], default_category_id: int) -> dict[int, list[dict[str, Any]]]:
+    present_roots = {
+        infer_root_category_id(record, default_category_id)
+        for record in records
+    }
     chapter_names_by_root: dict[int, set[str]] = {}
     for record in records:
         root_id = infer_root_category_id(record, default_category_id)
@@ -676,7 +874,14 @@ def build_category_catalog(records: list[dict[str, Any]], default_category_id: i
         chapter_names_by_root.setdefault(root_id, set()).add(chapter_name)
 
     catalog: dict[int, list[dict[str, Any]]] = {}
-    for root_id, chapter_names in chapter_names_by_root.items():
+    for root_id in sorted(present_roots):
+        if politics_syllabus.has_canonical_catalog(root_id):
+            catalog[root_id] = politics_syllabus.build_canonical_category_catalog(root_id)
+            continue
+
+        chapter_names = chapter_names_by_root.get(root_id, set())
+        if not chapter_names:
+            continue
         sorted_names = sorted(chapter_names, key=chapter_sort_key)
         catalog[root_id] = [
             {
@@ -757,6 +962,13 @@ def resolve_category_id(
 
     chapter_name = stringify(record.get("p_kaodian_text"))
     if chapter_name:
+        canonical_category_id = politics_syllabus.resolve_canonical_category_id(
+            root_id,
+            chapter_name,
+            section_hint=infer_theory_section_hint(record),
+        )
+        if canonical_category_id is not None:
+            return canonical_category_id
         category_id = chapter_category_id_map.get((root_id, chapter_name))
         if category_id is not None:
             return category_id
@@ -778,38 +990,57 @@ def convert_record(
     if not content:
         return None
 
+    root_id = infer_root_category_id(record, default_category_id)
+    normalized_record = record
+    raw_chapter_name = stringify(record.get("p_kaodian_text"))
+    if not raw_chapter_name and is_kyzz_record(record):
+        inferred_chapter_name = infer_kyzz_chapter_name(record, root_id)
+        if inferred_chapter_name:
+            normalized_record = dict(normalized_record)
+            normalized_record["p_kaodian_text"] = inferred_chapter_name
+            raw_chapter_name = inferred_chapter_name
+    section_hint = infer_theory_section_hint(record)
+    canonical_chapter_name = politics_syllabus.resolve_canonical_chapter_name(
+        root_id,
+        raw_chapter_name,
+        section_hint=section_hint,
+    )
+    if canonical_chapter_name and canonical_chapter_name != raw_chapter_name:
+        normalized_record = dict(record)
+        normalized_record["p_kaodian_text"] = canonical_chapter_name
+
     options, inferred_answer = extract_option_entries(record, mapping)
     correct_answer = normalize_correct_answer(pick_value(record, mapping, "correctAnswer"), options, inferred_answer)
     type_value = normalize_type(pick_value(record, mapping, "type"), len(options), correct_answer, content)
     difficulty_value = normalize_difficulty(pick_value(record, mapping, "difficulty"), default_difficulty)
 
-    if "categoryId" not in record:
-        explicit_category_id = pick_value(record, mapping, "categoryId")
+    if "categoryId" not in normalized_record:
+        explicit_category_id = pick_value(normalized_record, mapping, "categoryId")
         if explicit_category_id is not None:
-            record = dict(record)
-            record["categoryId"] = explicit_category_id
-    category_override = normalize_category_override(record)
-    category_id = category_override if category_override is not None else resolve_category_id(record, default_category_id, category_mode, chapter_category_id_map)
-    status_value = normalize_status(pick_value(record, mapping, "status"), default_status)
+            normalized_record = dict(normalized_record)
+            normalized_record["categoryId"] = explicit_category_id
+    category_override = normalize_category_override(normalized_record)
+    category_id = category_override if category_override is not None else resolve_category_id(normalized_record, default_category_id, category_mode, chapter_category_id_map)
+    status_value = normalize_status(pick_value(normalized_record, mapping, "status"), default_status)
 
     option_map = {label: text for label, text in options}
-    source_default = record.get("__source_stem__") or default_source
-    source_value = normalize_source(pick_value(record, mapping, "source"), source_default)
+    source_default = normalized_record.get("__source_stem__") or default_source
+    source_value = normalize_source(pick_value(normalized_record, mapping, "source"), source_default)
 
     return [
         content,
         TYPE_OUTPUT[type_value],
         DIFFICULTY_OUTPUT[difficulty_value],
-        build_tags(record, mapping),
+        build_tags(normalized_record, mapping),
         source_value,
-        normalize_source_type(pick_value(record, mapping, "sourceType"), source_value, default_source_type),
+        normalize_source_type(pick_value(normalized_record, mapping, "sourceType"), source_value, default_source_type),
         option_map.get("A", ""),
         option_map.get("B", ""),
         option_map.get("C", ""),
         option_map.get("D", ""),
         correct_answer,
-        stringify(pick_value(record, mapping, "analysis")),
-        stringify(pick_value(record, mapping, "solutionStrategy")),
+        stringify(pick_value(normalized_record, mapping, "analysis")),
+        stringify(pick_value(normalized_record, mapping, "solutionStrategy")),
         str(category_id),
         str(status_value),
     ]

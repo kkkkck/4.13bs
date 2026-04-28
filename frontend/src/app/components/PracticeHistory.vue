@@ -1,28 +1,19 @@
 <template>
   <div class="panel-card profile-compact-panel">
-    <div class="panel-head">
-      <div>
-        <h3>练习历史</h3>
-      </div>
+    <div class="panel-head profile-tight-head">
+      <h3>练习历史</h3>
+      <span class="record-pill muted">{{ items.length }} 次</span>
     </div>
 
-    <div v-if="items.length" class="profile-table-scroll history-table-scroll">
-      <div class="profile-table history-table">
-        <div class="profile-table-row profile-table-head">
-          <span>时间</span>
-          <span>专题</span>
-          <span>总题</span>
-          <span>已做</span>
-          <span>用时</span>
-        </div>
-        <div v-for="item in items" :key="item.id" class="profile-table-row history-table-row">
+    <div v-if="items.length" class="history-tile-grid">
+      <article v-for="item in items" :key="item.id" class="history-tile">
+        <strong :title="resolveCategoryName(item.categoryId)">{{ resolveCategoryName(item.categoryId) }}</strong>
+        <div>
           <span>{{ formatDate(item.createdAt) }}</span>
-          <strong>{{ resolveCategoryName(item.categoryId) }}</strong>
-          <span>{{ item.totalQuestions }}</span>
-          <span>{{ completedCount(item) }}</span>
+          <span>{{ completedCount(item) }}/{{ item.totalQuestions }} 题</span>
           <span>{{ formatDuration(item.duration) }}</span>
         </div>
-      </div>
+      </article>
     </div>
 
     <div v-else class="empty-state profile-empty">暂无练习记录。</div>

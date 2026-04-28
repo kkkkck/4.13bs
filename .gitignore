@@ -5,8 +5,10 @@ __pycache__/
 *.pyo
 *.class
 *.apkg
+*.pid
 
 backend/target/
+backend/uploads/
 backend/*.log
 backend/*.err
 backend/*.txt
@@ -20,3 +22,4 @@ frontend/*.err.log
 dataset/kyzz/
 
 deploy/logs/
+uploads/

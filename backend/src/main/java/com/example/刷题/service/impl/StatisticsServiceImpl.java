@@ -14,9 +14,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * 统计服务实现类
- */
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
 

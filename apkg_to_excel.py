@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import dataset_to_excel as excel_converter
+import politics_syllabus
 
 
 APKG_FILE_NAMES = ("collection.anki2", "collection.anki21", "collection.anki21b")
@@ -30,46 +31,6 @@ TOPIC_NAME_MAP = {
     "毛中特": "毛泽东思想和中国特色社会主义",
     "史纲": "中国近现代史纲要",
     "思修": "思想道德修养与法律基础",
-}
-
-CANONICAL_CHAPTER_MAP = {
-    1: {
-        "第一章 马克思主义是关于无产阶级和人类解放的科学": {"id": 1001, "name": "导论"},
-        "第三章 实践与认识及其发展规律": {"id": 1004, "name": "第三章 认识论"},
-        "第四章 人类社会及其发展规律": {"id": 1005, "name": "第四章 唯物史观"},
-        "第五章 资本主义的本质及规律": {"id": 1006, "name": "第五章 资本主义的本质及规律"},
-        "第六章 资本主义的发展及其趋势": {"id": 1007, "name": "第六章 资本主义的发展及趋势"},
-        "第七章 社会主义的发展及其规律": {"id": 1008, "name": "第七章 社会主义社会的发展及其规律"},
-        "第八章 共产主义崇高理想及其最终实现": {"id": 1009, "name": "第八章 共产主义崇高理想及其最终实现"},
-    },
-    2: {
-        "第一章 毛泽东思想及其历史地位": {"id": 2003, "name": "第一章 毛泽东思想及其历史地位"},
-        "第二章 新民主主义革命理论": {"id": 2005, "name": "第二章 新民主主义革命理论"},
-        "第三章 社会主义改造理论": {"id": 2006, "name": "第三章 社会主义改造理论"},
-        "第四章 社会主义建设道路初步探索的理论成果": {"id": 2007, "name": "第四章 社会主义建设道路初步探索的理论成果"},
-        "第五章 邓小平理论": {"id": 2009, "name": "第五章 邓小平理论"},
-        "第六章 “三个代表”重要思想": {"id": 2010, "name": "第六章 “三个代表”重要思想"},
-        "第七章 科学发展观": {"id": 2013, "name": "第七章 科学发展观"},
-        "第十三章 中国特色大国外交": {"id": 2020, "name": "第十六章 中国特色大国外交和推动构建人类命运共同体"},
-    },
-    3: {
-        "第一章 反对外国侵略的斗争": {"id": 3001, "name": "第一章 反对外国侵略的斗争"},
-        "第二章 对国家出路的早期探索": {"id": 3002, "name": "第二章 对国家出路的早期探索"},
-        "第三章 辛亥革命与君主专制制度的终结": {"id": 3003, "name": "第三章 辛亥革命与君主专制制度的终结"},
-        "第四章 开天辟地的大事变": {"id": 3004, "name": "第四章中国共产党成立和中国革命新局面"},
-        "第五章 中国革命的新道路": {"id": 3005, "name": "第五章 中国革命的新道路"},
-        "第六章 中华民族的抗日战争": {"id": 3006, "name": "第六章 中华民族的抗日战争"},
-        "第七章 为新中国而奋斗": {"id": 3007, "name": "第七章 为新中国而奋斗"},
-        "第十章 中国特色社会主义的开创与接续发展": {"id": 3009, "name": "第九章中国特色社会主义的开创与接续发展"},
-    },
-    4: {
-        "第一章 人生的青春之问": {"id": 4001, "name": "第一章 人生的青春之问"},
-        "第二章 坚定理想信念": {"id": 4002, "name": "第二章 坚定理想信念"},
-        "第三章 弘扬中国精神": {"id": 4003, "name": "第三章 弘扬中国精神"},
-        "第四章 践行社会主义核心价值观": {"id": 4004, "name": "第四章 践行社会主义核心价值观"},
-        "第五章 明大德守公德严私德": {"id": 4005, "name": "第五章 明大德守公德严私德"},
-        "第六章 遵法学法守法用法": {"id": 4006, "name": "第六章 遵法学法守法用法"},
-    },
 }
 
 TEXT_REPLACEMENTS = (
@@ -203,7 +164,51 @@ def normalize_apkg_chapter_name(name: str) -> str:
 def resolve_canonical_chapter(root_id: int | None, chapter_name: str) -> dict[str, Any] | None:
     if root_id is None:
         return None
-    return CANONICAL_CHAPTER_MAP.get(root_id, {}).get(chapter_name)
+    canonical_name = politics_syllabus.resolve_canonical_chapter_name(root_id, chapter_name)
+    canonical_id = politics_syllabus.resolve_canonical_category_id(root_id, chapter_name)
+    if canonical_name is None or canonical_id is None:
+        return None
+    return {"id": canonical_id, "name": canonical_name}
+
+
+def infer_modern_theory_chapter(question: str, analysis: str, chapter_name: str) -> dict[str, Any] | None:
+    normalized_chapter = chapter_name.strip()
+    if normalized_chapter not in {"第十章 “五位一体”总体布局", "第十一章 “四个全面”战略布局"}:
+        return None
+
+    text = f"{question}\n{analysis}"
+
+    keyword_groups = (
+        ("第16章 中国特色大国外交和推动构建人类命运共同体", ("人类命运共同体", "中国特色大国外交", "一带一路", "对外开放新格局中的外交", "全球治理", "和平发展道路")),
+        ("第15章 坚持“一国两制”和推进祖国完全统一", ("一国两制", "港澳", "澳门", "香港", "台湾", "祖国完全统一", "和平统一")),
+        ("第14章 建设巩固国防和强大人民军队", ("国防", "强军", "军队", "人民军队", "国防和军队现代化")),
+        ("第17章 全面从严治党", ("全面从严治党", "党的自我革命", "党要管党", "从严治党", "党的建设", "反腐败", "巡视巡察")),
+        ("第13章 维护和塑造国家安全", ("总体国家安全观", "国家安全", "平安中国", "政治安全", "人民安全", "国家利益至上")),
+        ("第12章 建设社会主义生态文明", ("生态文明", "美丽中国", "环境保护", "污染防治", "人与自然和谐共生", "绿色发展", "碳达峰", "碳中和")),
+        ("第11章 以保障和改善民生为重点加强社会建设", ("保障和改善民生", "民生", "社会保障", "就业", "六稳", "六保", "健康中国", "人民健康")),
+        ("第10章 建设社会主义文化强国", ("文化强国", "文化自信", "社会主义核心价值观", "社会主义核心价值体系", "中华优秀传统文化", "文物", "博物馆", "意识形态", "文化事业", "文化产业")),
+        ("第9章 全面依法治国", ("全面依法治国", "法治", "法治国家", "法治政府", "法治社会")),
+        ("第8章 发展全过程人民民主", ("全过程人民民主", "人民当家作主", "政治发展道路", "协商民主", "民主政治", "统一战线")),
+        ("第7章 社会主义现代化建设的教育、科技、人才战略", ("教育", "科技", "人才", "科教兴国", "创新驱动", "战略支撑")),
+        ("第6章 推动高质量发展", ("高质量发展", "新发展理念", "现代化经济体系", "实体经济", "双循环", "乡村振兴", "三农", "农业农村", "供给侧", "经济发展", "发展理念", "区域协调发展")),
+        ("第5章 全面深化改革开放", ("全面深化改革", "改革开放", "自贸港", "外商投资法", "改革", "制度型开放")),
+        ("第4章 坚持以人民为中心", ("以人民为中心", "人民立场", "共同富裕")),
+        ("第3章 坚持党的全面领导", ("坚持党的全面领导", "党的领导", "党中央集中统一领导", "党总揽全局", "党的领导制度")),
+        ("第2章 以中国式现代化全面推进中华民族伟大复兴", ("中国式现代化", "中华民族伟大复兴", "中国梦", "强国建设", "民族复兴", "全面建成小康社会", "脱贫攻坚", "现代化强国")),
+        ("第1章 新时代坚持和发展中国特色社会主义", ("新时代坚持和发展中国特色社会主义",)),
+    )
+
+    for canonical_name, keywords in keyword_groups:
+        if any(keyword in text for keyword in keywords):
+            canonical_id = politics_syllabus.resolve_canonical_category_id(2, canonical_name)
+            if canonical_id is not None:
+                return {"id": canonical_id, "name": canonical_name}
+
+    fallback_name = "第6章 推动高质量发展" if normalized_chapter.startswith("第十章") else "第5章 全面深化改革开放"
+    fallback_id = politics_syllabus.resolve_canonical_category_id(2, fallback_name)
+    if fallback_id is None:
+        return None
+    return {"id": fallback_id, "name": fallback_name}
 
 
 def infer_question_type(deck_name: str, answer: str) -> str:
@@ -289,6 +294,8 @@ def parse_decrypted_note(note: dict[str, Any], source: str, source_type: str, fa
     normalized_chapter = normalize_apkg_chapter_name(chapter)
     root_id = excel_converter.EXACT_CATEGORY_MAP.get(topic)
     canonical = resolve_canonical_chapter(root_id, normalized_chapter)
+    if canonical is None and root_id == 2:
+        canonical = infer_modern_theory_chapter(question, analysis, normalized_chapter)
     record = {
         "title": question,
         "type": infer_question_type(str(note.get("deck_name") or ""), answer),
@@ -422,7 +429,7 @@ def main() -> int:
     unmatched_records = [record for record in records if "__resolved_category_id__" not in record]
 
     category_catalog = (
-        build_namespaced_category_catalog(unmatched_records, args.category_id, source)
+        excel_converter.build_category_catalog(records, args.category_id)
         if (args.category_mode == "chapter" or category_seed_output)
         else {}
     )
