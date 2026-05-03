@@ -77,3 +77,10 @@ app:
     verification-code-cooldown-seconds: ${VERIFICATION_CODE_COOLDOWN_SECONDS:60}
   security:
     super-admin-id: ${SUPER_ADMIN_ID:1}
+  ai:
+    ollama:
+      enabled: ${OLLAMA_ENABLED:true}
+      base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+      model: ${OLLAMA_MODEL:deepseek-r1:7b}
+      timeout-seconds: ${OLLAMA_TIMEOUT_SECONDS:120}
+      max-history-messages: ${OLLAMA_MAX_HISTORY_MESSAGES:6}

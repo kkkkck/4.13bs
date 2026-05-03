@@ -170,8 +170,14 @@
   .modal-dialog .row-actions > .ghost-btn,
   .modal-dialog .row-actions > .primary-btn,
   .question-actions > .ghost-btn,
-  .question-actions > .primary-btn {
+  .question-actions > .primary-btn,
+  .ai-input-row > .primary-btn {
     width: 100%;
+  }
+
+  .ai-helper-head,
+  .ai-input-row {
+    display: grid;
   }
 
   .table-actions-cell .row-actions {

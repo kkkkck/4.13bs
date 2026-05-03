@@ -112,7 +112,7 @@
             <p>你的答案：{{ formatAnswerForDisplay(currentResult.userAnswer) || '未填写' }}</p>
             <p>正确答案：{{ formatAnswerForDisplay(currentResult.correctAnswer) }}</p>
             <div class="detail-grid">
-              <article class="feature-card detail-card">
+              <article class="feature-card detail-card answer-analysis-card">
                 <strong>答案解析</strong>
                 <div class="detail-scroll">
                   <p>{{ currentResult.analysis || '暂无解析' }}</p>
@@ -125,6 +125,50 @@
                 </div>
               </article>
             </div>
+
+            <div class="ai-helper-row">
+              <button class="ghost-btn small" type="button" @click="openAiPanel">DeepSeek</button>
+              <span>本地 DeepSeek 辅助解释，以题库答案为准。</span>
+            </div>
+
+            <section v-if="aiPanelOpen" class="ai-helper-panel">
+              <header class="ai-helper-head">
+                <div>
+                  <strong>AI 答疑</strong>
+                  <p>当前模型为 {{ aiModel || 'deepseek-r1:7b' }}</p>
+                </div>
+                <button class="ghost-btn small" type="button" @click="closeAiPanel">关闭</button>
+              </header>
+
+              <div class="ai-message-list">
+                <p v-if="!aiMessages.length" class="ai-empty-tip">
+                  可以让 AI 用更通俗的话解释题目、指出易错点，或追问某个选项为什么不选。
+                </p>
+                <article
+                  v-for="(message, index) in aiMessages"
+                  :key="`${message.role}-${index}`"
+                  class="ai-message"
+                  :class="message.role"
+                >
+                  <strong>{{ message.role === 'user' ? '我' : 'AI' }}</strong>
+                  <p>{{ message.content }}</p>
+                </article>
+              </div>
+
+              <p v-if="aiError" class="form-error">{{ aiError }}</p>
+              <div class="ai-input-row">
+                <textarea
+                  v-model="aiQuestion"
+                  class="textarea ai-question-input"
+                  rows="3"
+                  placeholder="例如：为什么这个选项不对？请按知识点解释。"
+                  :disabled="aiLoading"
+                />
+                <button class="primary-btn" type="button" :disabled="aiLoading || !aiQuestion.trim()" @click="sendAiQuestion">
+                  {{ aiLoading ? '思考中...' : '发送' }}
+                </button>
+              </div>
+            </section>
           </div>
         </div>
 
@@ -199,11 +243,12 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { getCategories } from '@/app/api/categories'
 import { addFavorite, getFavorites, removeFavorite } from '@/app/api/favorites'
+import { askAiTutor } from '@/app/api/ai'
 import { getQuestionsByCategory, getQuestionsByIds, submitAnswer } from '@/app/api/questions'
 import { saveLastPracticeCategory } from '@/app/practice-resume'
 import { createPracticeRecord } from '@/app/api/statistics'
 import { addWrongQuestion } from '@/app/api/wrong'
-import type { Category, Question, SubmitResult } from '@/app/types'
+import type { AiTutorMessage, Category, Question, SubmitResult } from '@/app/types'
 
 interface PracticeSheetQuestion extends Question {
   index: number
@@ -234,6 +279,12 @@ const loadError = ref('')
 const favoriteIds = ref<number[]>([])
 const actionMessage = ref('')
 const actionError = ref('')
+const aiPanelOpen = ref(false)
+const aiQuestion = ref('请用更通俗的话解释这道题为什么这样选，并指出我容易错在哪里。')
+const aiMessages = ref<AiTutorMessage[]>([])
+const aiLoading = ref(false)
+const aiError = ref('')
+const aiModel = ref('')
 const finishing = ref(false)
 const startTime = ref(Date.now())
 const recording = ref(false)
@@ -522,6 +573,59 @@ const clearFeedback = () => {
   actionError.value = ''
 }
 
+const resetAiPanel = () => {
+  aiPanelOpen.value = false
+  aiQuestion.value = '请用更通俗的话解释这道题为什么这样选，并指出我容易错在哪里。'
+  aiMessages.value = []
+  aiLoading.value = false
+  aiError.value = ''
+  aiModel.value = ''
+}
+
+const openAiPanel = () => {
+  if (!currentQuestion.value || !currentResult.value) {
+    return
+  }
+  aiPanelOpen.value = true
+  aiError.value = ''
+}
+
+const closeAiPanel = () => {
+  aiPanelOpen.value = false
+}
+
+const sendAiQuestion = async () => {
+  if (!currentQuestion.value || !currentResult.value || aiLoading.value) {
+    return
+  }
+
+  const message = aiQuestion.value.trim()
+  if (!message) {
+    return
+  }
+
+  const history = [...aiMessages.value]
+  aiMessages.value = [...aiMessages.value, { role: 'user', content: message }]
+  aiQuestion.value = ''
+  aiError.value = ''
+  aiLoading.value = true
+
+  try {
+    const response = await askAiTutor({
+      questionId: currentQuestion.value.id,
+      userAnswer: currentResult.value.userAnswer,
+      message,
+      history
+    })
+    aiMessages.value = [...aiMessages.value, { role: 'assistant', content: response.answer }]
+    aiModel.value = response.model
+  } catch (err) {
+    aiError.value = err instanceof Error ? err.message : 'AI答疑失败，请确认本地Ollama已启动'
+  } finally {
+    aiLoading.value = false
+  }
+}
+
 const shouldIgnoreKeyboard = () => {
   const active = document.activeElement
   if (!(active instanceof HTMLElement)) {
@@ -572,6 +676,7 @@ const resetSessionState = () => {
   optionLayoutSheet.value = {}
   startTime.value = Date.now()
   sessionRecorded.value = false
+  resetAiPanel()
   clearFeedback()
 }
 
@@ -931,6 +1036,7 @@ watch(
 )
 
 watch(currentQuestion, () => {
+  resetAiPanel()
   syncCurrentState()
 })
 

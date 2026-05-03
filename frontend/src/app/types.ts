@@ -60,6 +60,16 @@ export interface SubmitResult {
   message: string
 }
 
+export interface AiTutorMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AiTutorResponse {
+  answer: string
+  model: string
+}
+
 export interface FavoriteRecord {
   id: number
   userId: number
