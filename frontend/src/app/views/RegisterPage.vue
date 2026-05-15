@@ -1,19 +1,15 @@
 <template>
-  <div class="auth-page">
-    <section class="auth-hero">
-      <p class="eyebrow">注册</p>
-      <h1>先注册，再开始做题。</h1>
-      <p>用邮箱验证码完成注册。</p>
+  <div class="auth-page login-page">
+    <CosmicBackground />
 
-      <div class="auth-list">
-        <span class="tag">邮箱验证码</span>
-        <span class="tag">5 分钟有效</span>
-        <span class="tag">60 秒后可重发</span>
-        <span class="tag">注册后自动登录</span>
-      </div>
-    </section>
+    <div class="login-brand-logo" aria-label="考研政治">
+      <span class="login-brand-mark" aria-hidden="true">
+        <GraduationCap :size="25" :stroke-width="2.4" />
+      </span>
+      <strong>考研政治</strong>
+    </div>
 
-    <section class="auth-card">
+    <section class="auth-card login-card auth-flow-card">
       <div class="panel-head compact">
         <div>
           <h2>注册</h2>
@@ -87,9 +83,11 @@
 </template>
 
 <script setup lang="ts">
+import { GraduationCap } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { login, register, sendCode } from '@/app/api/auth'
+import CosmicBackground from '@/app/components/CosmicBackground.vue'
 import { useAuthStore } from '@/app/stores/auth'
 
 const router = useRouter()
@@ -122,6 +120,7 @@ const expireMinutes = computed(() => Math.max(1, Math.round(expiresInSeconds.val
 const isEmailValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 const startCountdown = () => {
+  // 发码后 60 秒倒计时，避免用户连续点击导致后端频繁发送邮件。
   if (timer) {
     window.clearInterval(timer)
     timer = null
@@ -142,6 +141,7 @@ const fillDebugCode = () => {
 }
 
 const handleSendCode = async () => {
+  // 注册第一步：只把邮箱发给后端，后端生成验证码并尝试真实发邮件。
   error.value = ''
   debugCode.value = ''
   codeSent.value = false
@@ -159,6 +159,7 @@ const handleSendCode = async () => {
   sendingCode.value = true
   try {
     const result = await sendCode(normalizedEmail.value)
+    // 如果后端处于调试模式，debugCode 会有值；真实邮箱模式下这里为空。
     debugCode.value = result.debugCode || ''
     expiresInSeconds.value = result.expiresInSeconds || 300
     codeSent.value = true
@@ -174,6 +175,7 @@ const handleSendCode = async () => {
 }
 
 const handleSubmit = async () => {
+  // 注册第二步：带验证码创建用户；创建成功后立刻调用登录接口，让用户无需手动再登录一次。
   error.value = ''
 
   if (!normalizedNickname.value || !normalizedEmail.value || !form.password || !form.code.trim()) {
@@ -212,6 +214,7 @@ const handleSubmit = async () => {
 
     authStore.token = authData.token
     authStore.user = authData.user
+    // 手动写入 store 后要持久化，否则刷新页面会丢失登录态。
     authStore.persist()
 
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'

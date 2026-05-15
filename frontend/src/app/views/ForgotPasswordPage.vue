@@ -1,12 +1,15 @@
 <template>
-  <div class="auth-page">
-    <section class="auth-hero">
-      <p class="eyebrow">重置密码</p>
-      <h1>用注册邮箱找回账号。</h1>
-      <p>验证码会发送到之前注册的邮箱。</p>
-    </section>
+  <div class="auth-page login-page">
+    <CosmicBackground />
 
-    <section class="auth-card">
+    <div class="login-brand-logo" aria-label="考研政治">
+      <span class="login-brand-mark" aria-hidden="true">
+        <GraduationCap :size="25" :stroke-width="2.4" />
+      </span>
+      <strong>考研政治</strong>
+    </div>
+
+    <section class="auth-card login-card auth-flow-card">
       <div class="panel-head compact">
         <div>
           <h2>忘记密码</h2>
@@ -85,9 +88,11 @@
 </template>
 
 <script setup lang="ts">
+import { GraduationCap } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { resetPassword, sendPasswordResetCode } from '@/app/api/auth'
+import CosmicBackground from '@/app/components/CosmicBackground.vue'
 
 const router = useRouter()
 
@@ -117,6 +122,7 @@ const expireMinutes = computed(() => Math.max(1, Math.round(expiresInSeconds.val
 const isEmailValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 const startCountdown = () => {
+  // 找回密码和注册共用同样的发码体验：发送成功后 60 秒内按钮不可重复点击。
   if (timer) {
     window.clearInterval(timer)
     timer = null
@@ -149,6 +155,7 @@ const validateEmail = () => {
 }
 
 const handleSendCode = async () => {
+  // 找回密码发码会先检查邮箱是否存在，避免给未注册邮箱发送验证码。
   error.value = ''
   message.value = ''
   debugCode.value = ''
@@ -173,6 +180,7 @@ const handleSendCode = async () => {
 }
 
 const handleReset = async () => {
+  // 重置密码必须同时满足：邮箱有效、验证码正确、新密码长度合规、两次密码一致。
   error.value = ''
   message.value = ''
 

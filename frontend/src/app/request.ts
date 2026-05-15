@@ -19,12 +19,16 @@ const service = axios.create({
 })
 
 service.interceptors.request.use((config) => {
+  // 所有需要登录的接口都靠 Authorization 里的 Bearer token 识别当前用户。
+  // 这样每个 API 文件不用重复写“取 token、放 header”的代码。
   const token = localStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
 
   if (config.data instanceof FormData) {
+    // 上传头像等文件时浏览器需要自己生成 multipart boundary，
+    // 所以这里移除手动设置的 JSON Content-Type。
     const headers = config.headers as AxiosRequestConfig['headers'] & {
       setContentType?: (value?: string) => void
     }
@@ -48,6 +52,7 @@ service.interceptors.response.use(
     }
 
     if (payload && typeof payload === 'object' && typeof payload.code === 'number') {
+      // 后端统一返回 { code, message, data }；前端只把 data 交给业务页面。
       if (payload.code === 200) {
         return payload.data
       }
@@ -59,6 +64,7 @@ service.interceptors.response.use(
   },
   (error: AxiosError<{ message?: string }>) => {
     if (error.response?.status === 401) {
+      // 401 表示 token 无效或过期，清掉本地登录信息并回到登录页。
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       localStorage.removeItem('role')

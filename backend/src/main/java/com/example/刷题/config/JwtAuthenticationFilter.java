@@ -28,6 +28,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = getTokenFromRequest(request);
 
+        // 这段是“登录态识别”的核心：
+        // 1. 前端登录后保存 token；
+        // 2. 每次请求都带 Authorization；
+        // 3. 后端在这里校验 token，并把用户身份塞进 Spring Security 上下文。
+        // 前端每次请求都会把 token 放在 Authorization: Bearer xxx 里。
+        // 这里验证 token 后，把当前用户放入 SecurityContext，后续 Controller 才知道是谁在访问。
         if (StringUtils.hasText(token) && jwtUtil.validateToken(token)
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             Long userId = jwtUtil.extractUserId(token);
@@ -47,6 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+        // 标准写法是 Bearer 后面跟一个空格，再跟真正的 JWT 字符串。
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }

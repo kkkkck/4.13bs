@@ -26,6 +26,7 @@ public class ActivityController {
 
     @PostMapping("/heartbeat")
     public ResponseEntity<Map<String, Object>> heartbeat(@Valid @RequestBody ActivityHeartbeatRequest request) {
+        // 前端每隔一段时间上报当前页面和活跃秒数，后台用户列表就能展示最近活跃时间。
         Long userId = securityUtils.getCurrentUserId();
         userActivityService.recordHeartbeat(userId, request.getSessionId(), request.getPath(), request.getActiveSeconds());
         return ResponseEntity.ok(Map.of("success", true));

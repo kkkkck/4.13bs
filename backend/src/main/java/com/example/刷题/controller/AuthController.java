@@ -42,6 +42,8 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    // 认证控制器：前端登录、注册、找回密码、个人信息、头像相关请求都从这里进入。
+    // 它负责组织流程，真正的业务校验和数据库操作放在 UserService / VerificationCodeService。
     @Autowired
     private UserService userService;
 
@@ -59,6 +61,7 @@ public class AuthController {
 
     @PostMapping("/send-code")
     public Result<SendCodeResponse> sendCode(@Validated @RequestBody SendCodeRequest request) {
+        // 注册发码：先检查邮箱是否已注册，未注册才生成验证码并发送邮件。
         String email = normalizeEmail(request.getEmail());
         User existingUser = userService.findByEmail(email);
         if (existingUser != null) {
@@ -74,6 +77,8 @@ public class AuthController {
 
     @PostMapping("/register")
     public Result<User> register(@Validated @RequestBody RegisterRequest request) {
+        // 注册流程：校验邮箱验证码 -> 创建用户 -> 返回新用户。
+        // 密码加密、昵称唯一性等细节在 UserServiceImpl.register 里完成。
         String email = normalizeEmail(request.getEmail());
         String code = request.getCode() == null ? "" : request.getCode().trim();
         String nickname = request.getNickname() == null ? "" : request.getNickname().trim();
@@ -87,6 +92,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Validated @RequestBody LoginRequest request) {
+        // 登录流程：校验账号密码 -> 生成 JWT -> 前端保存 token，后续请求自动带上。
         String account = normalizeAccount(request.getAccount());
         User user = userService.login(account, request.getPassword());
 
@@ -106,6 +112,7 @@ public class AuthController {
 
     @PostMapping("/password/reset-code")
     public Result<SendCodeResponse> sendPasswordResetCode(@Validated @RequestBody SendCodeRequest request) {
+        // 找回密码发码：必须是已存在且正常启用的账号，避免给任意邮箱乱发验证码。
         String email = normalizeEmail(request.getEmail());
         User user = userService.findByEmail(email);
         if (user == null || user.getStatus() == null || user.getStatus() != 1) {
@@ -121,6 +128,7 @@ public class AuthController {
 
     @PostMapping("/password/reset")
     public Result<Void> resetPassword(@Validated @RequestBody ResetPasswordRequest request) {
+        // 重置密码：前端传邮箱、验证码、新密码。验证码通过后才允许更新密码。
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new BusinessException("两次输入的新密码不一致");
         }
@@ -137,6 +145,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public Result<User> me() {
+        // /me 用于前端刷新页面后重新确认当前用户资料和权限。
         Long userId = securityUtils.getCurrentUserId();
         return Result.success(userService.getActiveUserById(userId));
     }
@@ -174,6 +183,7 @@ public class AuthController {
 
     @GetMapping("/avatar/{filename}")
     public ResponseEntity<byte[]> getAvatar(@PathVariable String filename) throws IOException {
+        // 只允许读取 uploads/avatars 下的文件名，禁止 ../ 这种路径穿越攻击。
         if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
             return ResponseEntity.badRequest().build();
         }
@@ -212,6 +222,8 @@ public class AuthController {
     }
 
     private Result<SendCodeResponse> sendVerificationCode(String email, String mailMessage, String debugMessage) {
+        // 发验证码的公共流程，注册、找回密码、修改邮箱都会复用：
+        // 先生成并保存验证码，再发邮件；如果邮件发送失败，就撤销验证码。
         String code;
         try {
             code = verificationCodeService.generateCode(email);

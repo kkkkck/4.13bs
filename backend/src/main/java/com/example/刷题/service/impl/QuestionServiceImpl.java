@@ -46,6 +46,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
+    // 题目服务是刷题功能的核心：
+    // 查询题目、按分类分页、提交答案判题、后台导入去重、生成模拟试卷都集中在这里。
     private static final List<Integer> MOCK_EXAM_OBJECTIVE_TYPES = List.of(1, 5);
     private static final Map<Long, Integer> MOCK_EXAM_ROOT_WEIGHTS = buildMockExamRootWeights();
     private static final Map<Integer, Integer> MOCK_EXAM_TYPE_WEIGHTS = Map.of(1, 16, 5, 17);
@@ -87,6 +89,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     public Question getByIdWithCache(Long id) {
         String cacheKey = "question:" + id;
+        // 读单题时先查本地缓存/Redis，缓存都没有才真正访问 MySQL。
         return cacheService.get(cacheKey, Question.class, () -> {
             log.info("Load question from database, id={}", id);
             return super.getById(id);
@@ -95,6 +98,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Override
     public List<Question> getByIds(List<Long> ids) {
+        // listByIds 从数据库返回的顺序不一定等于传入顺序，所以这里额外保存 orderMap，最后再排序。
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
@@ -136,6 +140,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     public IPage<Question> getQuestionsByCategory(Long categoryId, Integer page, Integer size, Integer sourceType) {
         Page<Question> pageParam = new Page<>(page, size);
+        // 选择父分类时，要把它下面所有子章节的题目一起查出来。
         List<Long> categoryIds = resolveCategoryIds(categoryId, true);
         if (categoryIds.isEmpty()) {
             return pageParam;
@@ -157,6 +162,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         String normalizedUserAnswer = normalizeAnswer(question.getType(), request.getAnswer());
         String normalizedCorrectAnswer = normalizeAnswer(question.getType(), question.getCorrectAnswer());
 
+        // 判题前先统一格式：例如多选题 B,A 会被整理成 A,B，避免因为顺序不同误判。
         SubmitAnswerResponse response = new SubmitAnswerResponse();
         response.setUserAnswer(normalizedUserAnswer);
         response.setCorrectAnswer(normalizedCorrectAnswer);
@@ -205,6 +211,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Override
     public void createQuestion(Question question) {
+        // 后台新增题目前先标准化和校验，避免脏数据进入题库。
         normalizeQuestion(question);
         try {
             super.save(question);
@@ -300,6 +307,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Override
     public MockExamPaperResponse generateMockExam(Integer totalQuestions) {
+        // 模考生成不是简单随机：先按考研政治模块权重分配题量，再从各章节随机抽题。
         int requested = totalQuestions == null ? 33 : totalQuestions;
         if (requested < 5 || requested > 100) {
             throw new BusinessException("模拟考试题量需在 5 到 100 之间");
@@ -311,6 +319,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
 
         Map<Long, List<Category>> childrenMap = buildChildrenMap(activeCategories);
+        // 模考只抽客观题，并按考研政治各模块权重分配题量。
         List<Question> questionPool = getBaseMapper().selectActiveByCategoryIds(
                 activeCategories.stream().map(Category::getId).toList()
         ).stream()
@@ -443,6 +452,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     }
 
     private void normalizeQuestion(Question question) {
+        // 新增、编辑、导入题目都会走这里，把空格、默认值、答案格式和重复判断统一处理。
         if (question == null) {
             throw new BusinessException("题目信息不能为空");
         }
@@ -520,6 +530,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     }
 
     private String normalizeAnswer(Integer type, String answer) {
+        // 多选题答案统一排序成 A,C 这种格式；单选/填空/简答做基础 trim 和大写处理。
         if (!StringUtils.hasText(answer)) {
             return "";
         }
@@ -661,6 +672,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     }
 
     private String buildImportHash(Question question) {
+        // 导入去重用“题干 + 题型 + 答案 + 选项”生成指纹，同一道题换个空格/标点也尽量识别出来。
         String payload = String.join(
                 "||",
                 normalizeFingerprintText(question.getContent()),
@@ -756,6 +768,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             Map<T, Integer> weights,
             boolean ensureOne
     ) {
+        // 按权重分配题量：比如某模块权重大，就多抽一些；同时不能超过该模块实际可用题量。
         Map<T, Integer> result = new LinkedHashMap<>();
         Map<T, Integer> availableCapacities = capacities.entrySet().stream()
                 .filter(entry -> entry.getValue() != null && entry.getValue() > 0)

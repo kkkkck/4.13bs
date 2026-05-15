@@ -8,12 +8,15 @@ const HEARTBEAT_INTERVAL_MS = 30000
 const MIN_FLUSH_SECONDS = 5
 const STORAGE_KEY = 'activity_session_id'
 
+// 活跃度追踪器：记录用户在哪个页面停留了多久，上报给后端用于管理员查看最近活跃情况。
+// 它不是刷题成绩统计，成绩统计在 PracticePage.vue 完成练习时单独上报。
 let currentPath = '/'
 let lastVisibleAt = Date.now()
 let inFlight = false
 let queuedPayloads: ActivityHeartbeatPayload[] = []
 
 const getSessionId = () => {
+  // sessionStorage 只在当前浏览器标签页有效，刷新不变，关闭标签页后失效。
   const existing = sessionStorage.getItem(STORAGE_KEY)
   if (existing) {
     return existing
@@ -25,6 +28,7 @@ const getSessionId = () => {
 }
 
 const resolveElapsedSeconds = () => {
+  // 最多一次上报 120 秒，避免电脑睡眠/长时间后台导致一次性写入夸张时长。
   const seconds = Math.round((Date.now() - lastVisibleAt) / 1000)
   return Math.max(0, Math.min(seconds, 120))
 }
@@ -34,6 +38,7 @@ const resetClock = () => {
 }
 
 const enqueuePayload = (payload: ActivityHeartbeatPayload) => {
+  // 如果上一次心跳还没发完，新心跳先排队；同一路径的相邻心跳会合并，减少请求数。
   const lastPayload = queuedPayloads.at(-1)
   if (!lastPayload) {
     queuedPayloads.push(payload)
@@ -79,6 +84,7 @@ const flushQueuedPayloads = async () => {
 }
 
 const buildCurrentPayload = () => {
+  // 小于 5 秒的停留不记录，过滤掉快速切页面造成的噪声。
   const activeSeconds = resolveElapsedSeconds()
   if (activeSeconds < MIN_FLUSH_SECONDS) {
     return null
@@ -92,6 +98,7 @@ const buildCurrentPayload = () => {
 }
 
 const flushHeartbeat = async (keepalive = false, nextPath?: string) => {
+  // keepalive 用于页面关闭/切后台时尽量把最后一段停留时间送到后端。
   const authStore = useAuthStore(pinia)
   authStore.hydrate()
 
@@ -144,6 +151,7 @@ const flushHeartbeat = async (keepalive = false, nextPath?: string) => {
 }
 
 export const setupActivityTracker = (router: Router) => {
+  // 在 main.ts 里调用一次即可：路由切换、页面隐藏、定时器都会触发心跳上报。
   currentPath = router.currentRoute.value.fullPath
   resetClock()
 

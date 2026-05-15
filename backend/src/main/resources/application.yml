@@ -2,6 +2,8 @@ spring:
   application:
     name: shuati
   datasource:
+    # MySQL 是长期数据库：保存用户、题目、收藏、错题、练习记录等核心数据。
+    # 本地不想改文件时，可以用 MYSQL_URL / MYSQL_USERNAME / MYSQL_PASSWORD 环境变量覆盖。
     url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/question_bank?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD:youngKCK20}
@@ -27,6 +29,8 @@ spring:
             required: true
   data:
     redis:
+      # Redis 是临时数据和缓存：验证码、发送冷却、题目缓存等都放这里。
+      # 你用 Docker 跑 Redis 时，只要把 6379 端口映射到本机即可。
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
@@ -54,6 +58,7 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 server:
+  # 后端 API 默认端口。前端 Vite 会把 /api 代理到 http://localhost:8080。
   port: ${SERVER_PORT:8080}
   tomcat:
     threads:
@@ -79,6 +84,7 @@ app:
     super-admin-id: ${SUPER_ADMIN_ID:1}
   ai:
     ollama:
+      # 本地 AI 答疑配置。确认 Ollama 已启动，并且本机能访问 /api/chat。
       enabled: ${OLLAMA_ENABLED:true}
       base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
       model: ${OLLAMA_MODEL:deepseek-r1:7b}

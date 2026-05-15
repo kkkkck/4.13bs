@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 /**
  * 题目控制器
  * 实现刷题网站核心功能
+ * 前端 PracticePage.vue 获取题目、提交答案、后台维护题目，都会通过这里转到 QuestionService。
  */
 @Slf4j
 @RestController
@@ -48,11 +49,13 @@ public class QuestionController {
      */
     @GetMapping("/batch")
     public Result<List<Question>> getQuestionsByIds(@RequestParam String ids) {
+        // 用于一次性拿多道题，例如模考或继续练习时需要按既定顺序恢复题目。
         return Result.success(questionService.getByIds(parseQuestionIds(ids)));
     }
 
     @PostMapping("/batch")
     public Result<List<Question>> getQuestionsByIds(@RequestBody QuestionBatchRequest request) {
+        // 错题重练、收藏回练会传一组题目 id，这里去重过滤后按原顺序返回题目信息。
         if (request == null || request.getIds() == null) {
             throw new BusinessException("题目ID不能为空");
         }
@@ -83,6 +86,7 @@ public class QuestionController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size,
             @RequestParam(required = false) Integer sourceType) {
+        // categoryId 既可以是大专题，也可以是章节；Service 会把它展开成自己和所有子分类。
         log.info("请求获取分类题目列表，categoryId: {}, page: {}, size: {}, sourceType: {}", categoryId, page, size, sourceType);
         IPage<Question> questions = questionService.getQuestionsByCategory(categoryId, page, size, sourceType);
         return Result.success(questions);

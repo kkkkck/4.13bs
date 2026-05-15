@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // 全局异常处理器：Controller/Service 里抛出的异常会统一来到这里，
+    // 再转换成前端能识别的 Result，而不是把 Java 异常堆栈直接暴露给用户。
     @ExceptionHandler(BusinessException.class)
     public Result<?> handleBusinessException(BusinessException e, HttpServletRequest request) {
         log.error("BusinessException: {} Request: {}", e.getMessage(), request.getRequestURI());
@@ -27,6 +29,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        // @Valid / @Validated 校验失败时，把所有字段错误合并成一句提示返回给前端。
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
@@ -72,6 +75,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Result<?> handleException(Exception e, HttpServletRequest request) {
+        // 兜底异常：说明出现了未预料的问题。日志记录详细错误，前端只看到通用的 500。
         log.error("Exception: {} Request: {}", e.getMessage(), request.getRequestURI(), e);
         return Result.serverError();
     }

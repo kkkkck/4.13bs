@@ -28,6 +28,7 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     hydrate() {
+      // Pinia 状态只存在内存里；刷新页面后要从 localStorage 把登录态恢复回来。
       if (this.hydrated) {
         return
       }
@@ -46,6 +47,7 @@ export const useAuthStore = defineStore('auth', {
       this.hydrated = true
     },
     persist() {
+      // 登录信息持久化到浏览器本地，后续刷新页面和发送接口请求都会用到。
       if (this.token) {
         localStorage.setItem('token', this.token)
       } else {
@@ -61,12 +63,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async login(payload: LoginPayload) {
+      // 登录成功后，后端返回 token 和用户信息；保存后路由守卫就会认为用户已登录。
       const data = await loginApi(payload)
       this.token = data.token
       this.user = data.user
       this.persist()
     },
     async fetchProfile() {
+      // 用当前 token 向后端确认“我是谁”，常用于刷新页面后校验管理员权限。
       if (!this.token) {
         return null
       }

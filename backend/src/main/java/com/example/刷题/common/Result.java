@@ -6,6 +6,10 @@ import java.io.Serializable;
 
 @Data
 public class Result<T> implements Serializable {
+    // 统一响应类：后端所有普通接口都尽量返回这个格式，前端 request.ts 就不用为每个接口单独判断。
+    // T 是泛型，表示 data 可以是用户、题目列表、验证码结果等任意业务数据。
+    // 前端 request.ts 会统一识别这个结构：
+    // code=200 表示成功，data 是真正的数据；其他 code 会被当成错误提示。
     private Integer code;
     private String message;
     private T data;

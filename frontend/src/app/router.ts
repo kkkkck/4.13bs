@@ -5,6 +5,7 @@ import { useAuthStore } from '@/app/stores/auth'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // public 表示不登录也能访问，主要用于登录、注册、找回密码。
     {
       path: '/login',
       name: 'login',
@@ -28,6 +29,7 @@ const router = createRouter({
       component: () => import('@/app/layouts/ConsoleLayout.vue'),
       meta: { requiresAuth: true },
       children: [
+        // 普通用户登录后看到的主功能区：刷题、模考、收藏、错题和个人中心。
         { path: '', redirect: '/dashboard' },
         {
           path: 'dashboard',
@@ -78,6 +80,7 @@ const router = createRouter({
       component: () => import('@/app/layouts/AdminLayout.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
       children: [
+        // 后台管理区只允许管理员访问；用户管理页还额外要求超级管理员。
         { path: '', redirect: '/admin/dashboard' },
         {
           path: 'dashboard',
@@ -116,6 +119,7 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore(pinia)
+  // 刷新浏览器后 Pinia 会丢失内存状态，所以每次路由跳转前先从 localStorage 恢复登录信息。
   authStore.hydrate()
 
   if (to.meta.title) {
@@ -126,6 +130,7 @@ router.beforeEach(async (to) => {
     return '/dashboard'
   }
 
+  // 路由守卫的核心逻辑：需要登录但没有 token，就跳回登录页，并记录原本想去的地址。
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     return {
       path: '/login',
@@ -135,6 +140,7 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
     try {
+      // 本地存的用户信息可能过期，所以访问管理员页面前会向后端重新确认一次身份。
       await authStore.fetchProfile()
     } catch {
       authStore.logout()
@@ -148,6 +154,7 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin) {
     try {
+      // 超级管理员是 role=1 且 id=1，用于限制最敏感的用户管理功能。
       await authStore.fetchProfile()
     } catch {
       authStore.logout()

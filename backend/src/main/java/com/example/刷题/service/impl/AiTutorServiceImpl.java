@@ -28,6 +28,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class AiTutorServiceImpl implements AiTutorService {
+    // AI 答疑服务：把题库里的题干、选项、标准答案和解析一起发给本机 Ollama。
+    // 这样模型是在“题库材料”范围内解释，而不是随意发挥。
     private static final String SYSTEM_PROMPT = """
             你是考研政治刷题系统中的答疑助手。只能依据题目、选项、标准答案、题库解析和解题思路解释。
             不要改变题库给出的标准答案。不要编造教材页码、政策原文、作者或数据。
@@ -40,16 +42,19 @@ public class AiTutorServiceImpl implements AiTutorService {
 
     @Override
     public AiTutorResponse ask(AiTutorRequest request) {
+        // 如果 application.yml 里关闭了 app.ai.ollama.enabled，就直接拒绝调用本地 AI。
         if (!properties.isEnabled()) {
             throw new BusinessException("本地AI功能未启用");
         }
 
+        // AI 答疑不是让模型自由发挥，而是先查出题库里的题干、选项、答案和解析作为上下文。
         Question question = questionService.getByIdWithCache(request.getQuestionId());
         if (question == null) {
             throw new BusinessException("题目不存在");
         }
 
         List<Map<String, String>> messages = new ArrayList<>();
+        // Ollama 的 /api/chat 接收 messages 数组；system 负责定规则，user 负责给题目和学生问题。
         messages.add(message("system", SYSTEM_PROMPT));
         messages.add(message("user", buildQuestionContext(question, request.getUserAnswer())));
         appendHistory(messages, request.getHistory());
@@ -67,6 +72,7 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     private String callOllama(List<Map<String, String>> messages) throws IOException, InterruptedException {
+        // 这里手动用 Java HttpClient 调 Ollama，避免为了一个本地 HTTP 接口额外引入 SDK 依赖。
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("model", properties.getModel());
         payload.put("stream", false);
@@ -76,6 +82,7 @@ public class AiTutorServiceImpl implements AiTutorService {
                 .connectTimeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
                 .build();
         HttpRequest httpRequest = HttpRequest.newBuilder()
+                // 默认请求 http://127.0.0.1:11434/api/chat，也就是你本机正在运行的 Ollama。
                 .uri(URI.create(normalizeBaseUrl(properties.getBaseUrl()) + "/api/chat"))
                 .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
                 .header("Content-Type", "application/json")
@@ -87,6 +94,7 @@ public class AiTutorServiceImpl implements AiTutorService {
             throw new BusinessException("本地AI调用失败，请确认Ollama模型名称配置正确");
         }
 
+        // Ollama /api/chat 返回 JSON，其中 message.content 才是模型真正生成的答案文本。
         JsonNode root = objectMapper.readTree(response.body());
         String content = root.path("message").path("content").asText("");
         if (!StringUtils.hasText(content)) {
@@ -100,6 +108,7 @@ public class AiTutorServiceImpl implements AiTutorService {
             return;
         }
 
+        // 只带最近几轮对话，既能保持上下文，又避免 prompt 太长拖慢本地模型。
         int start = Math.max(0, history.size() - Math.max(0, properties.getMaxHistoryMessages()));
         for (AiTutorMessage item : history.subList(start, history.size())) {
             if (item == null || !StringUtils.hasText(item.getContent())) {
@@ -118,6 +127,7 @@ public class AiTutorServiceImpl implements AiTutorService {
     }
 
     private String buildQuestionContext(Question question, String userAnswer) {
+        // 这是防止 AI “跑题”的关键：把题目客观信息整理成一段上下文，要求模型基于这些信息解释。
         StringBuilder builder = new StringBuilder();
         builder.append("请基于以下题目信息答疑，不要脱离题目：\n");
         builder.append("题干：").append(nullToEmpty(question.getContent())).append('\n');

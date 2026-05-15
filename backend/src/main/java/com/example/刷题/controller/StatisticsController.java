@@ -21,6 +21,7 @@ public class StatisticsController {
     
     @GetMapping("/overview")
     public ResponseEntity<Map<String, Object>> getOverview() {
+        // 首页/个人中心的统计概览：累计题数、正确率、连续学习天数。
         Long userId = getCurrentUserId();
         
         Map<String, Object> result = new HashMap<>();
@@ -53,6 +54,7 @@ public class StatisticsController {
     
     @PostMapping("/record")
     public ResponseEntity<Map<String, Object>> createRecord(@RequestBody PracticeRecord record) {
+        // 用户完成或离开练习页时，前端会写入一条练习记录，用来支撑学习统计图表。
         Long userId = getCurrentUserId();
         record.setUserId(userId);
         statisticsService.createRecord(record);

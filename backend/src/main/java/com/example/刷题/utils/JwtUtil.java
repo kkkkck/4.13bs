@@ -20,6 +20,8 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
+    // JWT 可以理解成“带签名的登录凭证”。前端保存它，后端每次校验签名和过期时间。
+    // secret 是签名密钥，expiration 是有效期，二者都来自 application.yml / 环境变量。
     @Value("${jwt.secret}")
     private String secret;
 
@@ -58,10 +60,12 @@ public class JwtUtil {
     }
 
     public String generateToken(Map<String, Object> claims) {
+        // claims 里放用户 id、邮箱、昵称、角色；subject 使用 userId，方便后面快速取当前用户。
         return createToken(claims, claims.get("userId").toString());
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
+        // 生成 token 的三步：写入用户信息、设置签发/过期时间、用 HS256 算法签名。
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
@@ -78,6 +82,7 @@ public class JwtUtil {
 
     public Boolean validateToken(String token) {
         try {
+            // 只要签名不对、格式不对或过期，解析过程都会抛异常，统一返回 false。
             extractAllClaims(token);
             return !isTokenExpired(token);
         } catch (Exception e) {
@@ -96,6 +101,7 @@ public class JwtUtil {
     }
 
     private SecretKey getSigningKey() {
+        // jjwt 需要 SecretKey 类型，这里把配置里的字符串转换成真正的签名密钥。
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }

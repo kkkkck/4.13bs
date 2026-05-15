@@ -34,6 +34,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+    // 用户服务是账号体系的核心：注册、登录、资料修改、头像、密码、后台用户管理都在这里。
+    // Controller 只负责接收请求，这里负责真正的业务规则和数据库写入。
     private static final String DEFAULT_AVATAR_PRESET = "sunrise-reader";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Pattern AVATAR_PRESET_PATTERN = Pattern.compile("^[a-z0-9-]{2,40}$");
@@ -65,6 +67,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User register(String email, String password, String nickname) {
+        // 注册时只接收已经通过验证码校验的邮箱。这里再做唯一性检查，最后把密码加密后入库。
         String normalizedEmail = normalizeEmail(email);
         String normalizedNickname = normalizeNickname(nickname);
 
@@ -95,6 +98,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User login(String account, String password) {
+        // 登录支持邮箱或昵称。先查账号，再用 BCrypt 校验密码，不能直接比较明文。
         User user = findByAccount(account);
         if (user == null || user.getStatus() == null || user.getStatus() != 1) {
             throw new BusinessException(401, "用户不存在或已被禁用");
@@ -121,6 +125,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User updateProfile(Long userId, String nickname, String email, String verificationCode) {
+        // 修改资料时，如果邮箱变了，需要验证“原邮箱”的验证码，防止别人登录后偷偷换绑邮箱。
         User user = getActiveUserById(userId);
 
         String normalizedNickname = normalizeNickname(nickname);
@@ -157,6 +162,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User updateAvatar(Long userId, MultipartFile file) {
+        // 头像上传流程：校验文件类型/大小 -> 保存到 uploads/avatars -> 删除旧头像 -> 更新用户头像地址。
         User user = getActiveUserById(userId);
         validateAvatarFile(file);
 
@@ -196,6 +202,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public void changePassword(Long userId, String currentPassword, String newPassword) {
+        // 登录状态下改密码必须先验证当前密码，避免别人拿到登录态后直接改密码。
         User user = getActiveUserById(userId);
         if (!StringUtils.hasText(currentPassword) || !passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new BusinessException(401, "当前密码不正确");
@@ -215,6 +222,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public void resetPasswordByEmail(String email, String newPassword) {
+        // 忘记密码流程已经在 Controller 校验过邮箱验证码，这里只负责更新新密码。
         User user = findByEmail(normalizeEmail(email));
         if (user == null || user.getStatus() == null || user.getStatus() != 1) {
             throw new BusinessException(404, "用户不存在或已被禁用");
@@ -243,6 +251,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             String sortField,
             String sortOrder
     ) {
+        // 后台用户列表会拼上最近活跃时间，并支持按活跃状态和字段排序，方便管理员查看使用情况。
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>()
                 .and(StringUtils.hasText(keyword), wrapper -> wrapper
                         .like(User::getEmail, keyword)
@@ -403,6 +412,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     private User findByAccount(String account) {
+        // 用户输入带 @ 就按邮箱查，否则按昵称查。昵称重复时要求改用邮箱登录，避免登录到错误账号。
         String trimmedAccount = account == null ? "" : account.trim();
         if (!StringUtils.hasText(trimmedAccount)) {
             return null;
@@ -569,6 +579,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     private void validateAvatarFile(MultipartFile file) {
+        // 头像只允许常见图片格式且最大 2MB，避免用户上传超大文件或伪装文件。
         if (file == null || file.isEmpty()) {
             throw new BusinessException("请选择头像图片");
         }
@@ -587,6 +598,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     private void deleteAvatarFileIfManaged(String avatarUrl) {
+        // 只删除本系统生成的头像文件，外部 URL 或异常路径一律不处理。
         if (!StringUtils.hasText(avatarUrl) || !avatarUrl.startsWith(AVATAR_URL_PREFIX)) {
             return;
         }

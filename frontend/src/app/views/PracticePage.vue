@@ -264,6 +264,8 @@ interface PresentedOption {
 const route = useRoute()
 const router = useRouter()
 
+// 练习页的核心状态：
+// questions 是本次练习题目，answerSheet/resultSheet/draftSheet 分别保存已答、判题结果和草稿。
 const questions = ref<Question[]>([])
 const categories = ref<Category[]>([])
 const currentIndex = ref(0)
@@ -297,6 +299,7 @@ const parseQueryNumber = (value: unknown) => {
 }
 
 const parseQueryNumberList = (value: unknown) => {
+  // 从 URL query 里解析 questionIds=1,2,3，用于错题重练和收藏回练。
   const raw = Array.isArray(value) ? value.join(',') : typeof value === 'string' ? value : ''
   if (!raw) {
     return [] as number[]
@@ -468,6 +471,7 @@ const getQuestionOptionEntries = (question: Question) =>
   ].filter((item): item is { answerKey: string; value: string } => Boolean(item.value))
 
 const buildPresentedOptions = (question: Question | null): PresentedOption[] => {
+  // 选项展示顺序会随机打乱，但 answerKey 保留原始 A/B/C/D，提交给后端时仍按原始答案判题。
   if (!question) {
     return []
   }
@@ -486,6 +490,7 @@ const buildPresentedOptions = (question: Question | null): PresentedOption[] => 
 }
 
 const initializeOptionLayouts = (records: Question[]) => {
+  // 每道选择题只在加载时随机一次选项顺序，切题回来不会重新洗牌。
   optionLayoutSheet.value = Object.fromEntries(
     records
       .filter((item) => item.type === 1 || item.type === 5)
@@ -681,6 +686,7 @@ const resetSessionState = () => {
 }
 
 const loadAllQuestions = async (targetCategoryId: number, sourceType: number) => {
+  // 后端是分页接口；练习页为了随机出题，会循环把当前专题下的题目全部拉完。
   const size = 50
   let page = 1
   let totalPages = 1
@@ -713,6 +719,7 @@ const loadQuestionsByIds = async (ids: number[]) => {
 }
 
 const loadPage = async () => {
+  // 页面加载主流程：拿分类和收藏 -> 按 URL 判断练习模式 -> 加载题目 -> 随机题序和选项。
   loading.value = true
   loadError.value = ''
   clearFeedback()
@@ -806,6 +813,7 @@ const selectOption = (key: string) => {
 }
 
 const submitCurrentAnswer = async () => {
+  // 提交答案后，后端返回正确答案和解析；如果答错，再写入错题本。
   if (!currentQuestion.value || !canSubmit.value || currentResult.value) {
     return
   }
@@ -953,6 +961,7 @@ const buildPracticeRecordPayload = (totalQuestions: number) => {
 }
 
 const persistPracticeRecord = async (totalQuestions: number) => {
+  // 练习记录用于统计正确率、学习时长、历史记录；同一轮练习只保存一次，避免重复统计。
   if (shouldSkipRecordPersist()) {
     return
   }
@@ -972,6 +981,7 @@ const persistPracticeRecord = async (totalQuestions: number) => {
 }
 
 const persistPracticeRecordOnPageHide = () => {
+  // 页面关闭时普通 axios 请求可能被浏览器取消，所以这里用 fetch keepalive 尽量补交记录。
   if (finishing.value || loading.value || shouldSkipRecordPersist()) {
     return
   }

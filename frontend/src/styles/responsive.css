@@ -11,6 +11,10 @@
     grid-template-columns: 1fr;
   }
 
+  .login-page {
+    min-height: 100vh;
+  }
+
   .settings-form-grid {
     grid-template-columns: 1fr;
   }
@@ -40,6 +44,108 @@
   .auth-hero,
   .auth-card {
     padding: 18px;
+  }
+
+  .login-page {
+    padding: 18px;
+  }
+
+  .login-brand-logo {
+    left: 16px;
+    top: 16px;
+    padding: 8px 11px 8px 8px;
+  }
+
+  .login-brand-logo strong {
+    font-size: 14px;
+  }
+
+  .login-brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .login-page > .login-card {
+    min-width: 0;
+  }
+
+  .login-card {
+    border-radius: 22px;
+  }
+
+  .auth-card.login-card {
+    left: 50%;
+    right: auto;
+    width: min(310px, calc(100vw - 48px));
+    max-width: none;
+    transform: translate(-50%, -50%);
+    padding: 24px;
+  }
+
+  .auth-card.login-card.auth-flow-card {
+    left: 36px;
+    right: auto;
+    top: 88px;
+    bottom: 20px;
+    width: calc(100vw - 72px) !important;
+    max-height: none;
+    transform: none;
+    padding: 22px 18px;
+  }
+
+  .auth-flow-card .auth-form {
+    gap: 12px;
+  }
+
+  .auth-flow-card .field-block {
+    gap: 6px;
+  }
+
+  .auth-flow-card .input {
+    min-height: 44px;
+    padding: 11px 14px;
+  }
+
+  .auth-flow-card .inline-form {
+    grid-template-columns: minmax(0, 1fr) 96px;
+    gap: 8px;
+  }
+
+  .auth-flow-card .password-field {
+    grid-template-columns: minmax(0, 1fr) 72px;
+    gap: 8px;
+  }
+
+  .auth-flow-card .inline-form > .ghost-btn {
+    width: 96px;
+    min-width: 96px;
+    min-height: 44px;
+    padding-inline: 8px;
+    font-size: 13px;
+  }
+
+  .auth-flow-card .password-field > .ghost-btn {
+    width: 72px;
+    min-width: 72px;
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+
+  .auth-flow-card .form-tip {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .auth-flow-card .support-line {
+    padding-top: 12px;
+  }
+
+  .login-card .panel-head h2 {
+    font-size: 28px;
+  }
+
+  .auth-flow-card .panel-head h2 {
+    font-size: 27px;
   }
 
   .hero-card,
@@ -209,5 +315,33 @@
 
   .settings-submask {
     padding: 12px;
+  }
+
+  .auth-card.login-card.auth-flow-card {
+    left: 36px;
+    right: 36px;
+    width: auto !important;
+  }
+
+  .auth-flow-card .input {
+    max-width: 100%;
+  }
+
+  .auth-flow-card .inline-form {
+    grid-template-columns: minmax(0, 1fr) 96px;
+  }
+
+  .auth-flow-card .password-field {
+    grid-template-columns: minmax(0, 1fr) 72px;
+  }
+
+  .auth-flow-card .inline-form > .ghost-btn {
+    width: 96px;
+    min-width: 96px;
+  }
+
+  .auth-flow-card .password-field > .ghost-btn {
+    width: 72px;
+    min-width: 72px;
   }
 }

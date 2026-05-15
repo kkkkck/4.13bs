@@ -2,6 +2,8 @@ import type { RouteLocationRaw } from 'vue-router'
 
 const LAST_PRACTICE_KEY = 'shuati:last-practice'
 
+// 这里保存“上次练到哪个专题/题源”，首页就能提供继续练习入口。
+// 只存 categoryId 和 sourceType，不存题目答案，避免 localStorage 变得复杂。
 interface LastPracticePayload {
   categoryId: number
   sourceType?: number
@@ -9,6 +11,7 @@ interface LastPracticePayload {
 }
 
 export function saveLastPracticeCategory(categoryId: number, sourceType = 0) {
+  // 每次进入练习页都会更新，刷新或重新打开浏览器后也能继续找到上次专题。
   if (!Number.isFinite(categoryId) || categoryId <= 0) {
     return
   }
@@ -57,6 +60,7 @@ export function getLastPracticeSourceType() {
 }
 
 export function getLastPracticeRoute(): RouteLocationRaw {
+  // 根据保存的专题生成 Vue Router 可跳转对象；没有记录就回到专题页。
   const categoryId = getLastPracticeCategoryId()
   if (!categoryId) {
     return '/categories'

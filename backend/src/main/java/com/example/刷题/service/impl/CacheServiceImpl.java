@@ -53,6 +53,8 @@ public class CacheServiceImpl implements CacheService {
 
     @Override
     public <T> T get(String key, Class<T> clazz, DbLoader<T> dbLoader) {
+        // 读缓存的顺序：先本机内存 L1，再 Redis L2，最后才查 MySQL L3。
+        // 这样热点题目不会每次都打到数据库，答辩时可以把它作为性能优化点说明。
         log.info("获取缓存数据，key: {}", key);
         
         // L1: 查询Caffeine本地缓存
@@ -91,6 +93,7 @@ public class CacheServiceImpl implements CacheService {
         T data = dbLoader.load();
 
         // 异步回填缓存
+        // 数据库结果异步写回 L1/L2，不阻塞当前请求返回。
         final String finalKey2 = key;
         final T finalData = data;
         cacheThreadPool.execute(() -> {
@@ -138,6 +141,7 @@ public class CacheServiceImpl implements CacheService {
 
     @Override
     public void deleteByPrefix(String keyPrefix) {
+        // 修改题目后，分类列表缓存会失效；按前缀批量删除可以保证用户看到的是最新题目。
         log.info("按前缀删除缓存，prefix: {}", keyPrefix);
 
         caffeineCache.asMap().keySet().removeIf(key -> key.startsWith(keyPrefix));

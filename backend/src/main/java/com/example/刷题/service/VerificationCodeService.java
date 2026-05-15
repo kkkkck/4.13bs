@@ -20,6 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @Slf4j
 public class VerificationCodeService {
+    // 验证码服务的职责：
+    // 1. 生成 6 位验证码；
+    // 2. 存到 Redis，并设置 5 分钟过期；
+    // 3. 限制同一邮箱 60 秒内不能重复发送；
+    // 4. 校验成功后立刻删除，防止重复使用。
     private static final String CODE_KEY_PREFIX = "auth:code:";
     private static final String LIMIT_KEY_PREFIX = "auth:limit:";
     private static final DefaultRedisScript<Long> VERIFY_AND_DELETE_SCRIPT = new DefaultRedisScript<>(
@@ -48,6 +53,9 @@ public class VerificationCodeService {
 
         reserveCooldown(normalizedEmail);
 
+        // SecureRandom 比普通 Random 更适合验证码，避免验证码序列太容易被猜到。
+        // 验证码同时写入内存和 Redis：Redis 正常时支持过期和多实例共享，
+        // Redis 临时不可用时，本机内存兜底，方便本地开发继续调试。
         String code = String.format("%06d", random.nextInt(1_000_000));
         long now = System.currentTimeMillis();
         codeMap.put(normalizedEmail, new VerificationCode(code, now));
@@ -74,6 +82,7 @@ public class VerificationCodeService {
 
         if (stringRedisTemplate != null) {
             try {
+                // 用 Lua 脚本“校验并删除”验证码，避免同一个验证码被重复使用。
                 Long deleted = stringRedisTemplate.execute(
                         VERIFY_AND_DELETE_SCRIPT,
                         Collections.singletonList(codeKey(normalizedEmail)),
@@ -112,6 +121,7 @@ public class VerificationCodeService {
             return;
         }
 
+        // 邮件发送失败时会撤销刚生成的验证码，避免用户拿不到邮件但系统里留着一个可用验证码。
         codeMap.remove(normalizedEmail);
         cooldownMap.remove(normalizedEmail);
 
@@ -142,8 +152,10 @@ public class VerificationCodeService {
             return;
         }
 
+        // 优先用 Redis 做限流，因为 Redis 能跨后端实例共享；Redis 不可用时再用本机 Map 兜底。
         if (stringRedisTemplate != null) {
             try {
+                // setIfAbsent 类似“如果没有这个 key 才写入”，用来限制 60 秒内不能反复发验证码。
                 Boolean reserved = stringRedisTemplate.opsForValue().setIfAbsent(
                         limitKey(normalizedEmail),
                         "1",

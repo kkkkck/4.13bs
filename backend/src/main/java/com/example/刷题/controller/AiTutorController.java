@@ -19,6 +19,7 @@ public class AiTutorController {
 
     @PostMapping("/tutor")
     public Result<AiTutorResponse> askTutor(@Valid @RequestBody AiTutorRequest request) {
+        // 前端在答题结果页点击 DeepSeek 时会请求这里；真正调用 Ollama 的逻辑在 AiTutorServiceImpl。
         return Result.success(aiTutorService.ask(request));
     }
 }

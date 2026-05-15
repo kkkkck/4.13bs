@@ -1,12 +1,15 @@
 <template>
-  <div class="auth-page">
-    <section class="auth-hero">
-      <p class="eyebrow">登录学习系统</p>
-      <h1>回来继续做题。</h1>
-      <p>用户名或邮箱都能登录。</p>
-    </section>
+  <div class="auth-page login-page">
+    <CosmicBackground />
 
-    <section class="auth-card">
+    <div class="login-brand-logo" aria-label="考研政治">
+      <span class="login-brand-mark" aria-hidden="true">
+        <GraduationCap :size="25" :stroke-width="2.4" />
+      </span>
+      <strong>考研政治</strong>
+    </div>
+
+    <section class="auth-card login-card">
       <div class="panel-head compact">
         <div>
           <h2>欢迎回来</h2>
@@ -61,8 +64,10 @@
 </template>
 
 <script setup lang="ts">
+import { GraduationCap } from 'lucide-vue-next'
 import { reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import CosmicBackground from '@/app/components/CosmicBackground.vue'
 import { useAuthStore } from '@/app/stores/auth'
 
 const router = useRouter()
@@ -79,6 +84,7 @@ const error = ref('')
 const passwordVisible = ref(false)
 
 const normalizeAccount = (account: string) => {
+  // 邮箱登录统一转小写，昵称登录保留原样，避免把用户昵称意外改掉。
   const trimmed = account.trim()
   if (trimmed.includes('@')) {
     return trimmed.toLowerCase()
@@ -87,6 +93,7 @@ const normalizeAccount = (account: string) => {
 }
 
 const handleSubmit = async () => {
+  // 登录按钮的完整流程：前端基础校验 -> 调 auth store 调后端 -> 成功后跳回原本想访问的页面。
   error.value = ''
 
   if (!form.account.trim() || !form.password) {
@@ -105,6 +112,7 @@ const handleSubmit = async () => {
       account: normalizeAccount(form.account),
       password: form.password
     })
+    // redirect 来自路由守卫：未登录访问受保护页面时，会被带到 /login?redirect=原地址。
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
     router.push(redirect)
   } catch (err) {
