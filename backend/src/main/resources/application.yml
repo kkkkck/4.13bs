@@ -21,9 +21,9 @@ spring:
       mail:
         smtp:
           auth: true
-          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT:5000}
-          timeout: ${MAIL_TIMEOUT:5000}
-          writetimeout: ${MAIL_WRITE_TIMEOUT:5000}
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT:10000}
+          timeout: ${MAIL_TIMEOUT:10000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT:10000}
           starttls:
             enable: true
             required: true
@@ -77,6 +77,8 @@ app:
     enabled: ${MAIL_ENABLED:true}
     from: ${MAIL_FROM:${MAIL_USERNAME:}}
     debug-code-enabled: ${MAIL_DEBUG_CODE_ENABLED:false}
+    send-retry-attempts: ${MAIL_SEND_RETRY_ATTEMPTS:2}
+    retry-backoff-millis: ${MAIL_RETRY_BACKOFF_MILLIS:800}
   auth:
     verification-code-expire-seconds: ${VERIFICATION_CODE_EXPIRE_SECONDS:300}
     verification-code-cooldown-seconds: ${VERIFICATION_CODE_COOLDOWN_SECONDS:60}
