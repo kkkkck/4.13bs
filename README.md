@@ -81,67 +81,6 @@ node tools/load-test.mjs --url http://127.0.0.1:8080 --scenario read --requests 
 python deploy/import_kyzz.py --mysql-password <你的 MySQL 密码>
 ```
 
-默认行为：
-
-- 输入目录：`dataset/kyzz/data`
-- 输出文件：`dataset/exports/kyzz-2010-2024-chapter.xlsx`
-- 分类模式：`chapter`
-- 章节 seed：`deploy/seed_kyzz_categories.sql`
-- 数据库：`question_bank`
-
-### 常见变体
-
-只重新生成 Excel 和章节 seed：
-
-```bash
-python deploy/import_kyzz.py --skip-db-init --skip-category-seed --skip-api-import
-```
-
-只初始化数据库并导入章节分类，不调用后台导题：
-
-```bash
-python deploy/import_kyzz.py --skip-api-import --mysql-password <你的 MySQL 密码>
-```
-
-改为顶层专题模式导入：
-
-```bash
-python deploy/import_kyzz.py --category-mode top --skip-category-seed --mysql-password <你的 MySQL 密码>
-```
-
-如果你的环境不是默认地址，可以覆盖这些参数：
-
-```bash
-python deploy/import_kyzz.py \
-  --backend-base-url http://127.0.0.1:8080 \
-  --admin-account admin@example.com \
-  --admin-password admin123 \
-  --mysql-host 127.0.0.1 \
-  --mysql-port 3306 \
-  --mysql-user root \
-  --mysql-password <你的 MySQL 密码>
-```
-
-## 手工生成命令
-
-顶层专题版：
-
-```bash
-python dataset_to_excel.py --input dataset/kyzz/data --output dataset/exports/kyzz-2010-2024.xlsx
-```
-
-章节版：
-
-```bash
-python dataset_to_excel.py --input dataset/kyzz/data --category-mode chapter --category-seed-output deploy/seed_kyzz_categories.sql --output dataset/exports/kyzz-2010-2024-chapter.xlsx
-```
-
-章节 seed 手工导入：
-
-```bash
-mysql --default-character-set=utf8mb4 -uroot -p question_bank < deploy/seed_kyzz_categories.sql
-```
-
 ## 当前产物
 
 - `dataset/exports/kyzz-2010-2024.xlsx`
@@ -177,14 +116,4 @@ mysql --default-character-set=utf8mb4 -uroot -p question_bank < deploy/seed_kyzz
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
 ```
-## 答辩和学习入口
 
-如果你是第一次从零理解这个项目，先按下面顺序读：
-
-1. `docs/LOCAL_RUN_BEGINNER.md`：先按步骤把项目在本机跑起来。
-2. `docs/DEFENSE_SCRIPT_ZERO_BASE.md`：先背会怎么向老师介绍项目。
-3. `docs/PROJECT_WALKTHROUGH.md`：完全零基础版，从“前端/后端/数据库是什么”开始讲。
-4. `docs/CLOUD_SERVER_BEGINNER_PLAYBOOK.md`：后续买云服务器时按步骤部署。
-5. `frontend/src/app/router.ts`、`frontend/src/app/request.ts`、`backend/src/main/java/com/example/刷题/config/SecurityConfig.java`：理解前后端怎么连起来。
-
-下面保留的是项目原有运行和数据导入说明。
