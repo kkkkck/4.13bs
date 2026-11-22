@@ -60,22 +60,7 @@ node tools/load-test.mjs --url http://127.0.0.1:8080 --scenario read --requests 
 
 ## `kyzz` 数据集一键导入
 
-当前仓库已经适配 `mrwoov/kyzz` 数据集，并提供一条可复现的导入链路：
-
-1. 生成后台可导入的 Excel
-2. 初始化基础库表和根专题
-3. 导入章节分类 seed SQL
-4. 登录后台管理员并调用 `/api/admin/questions/import`
-
-### 先决条件
-
-- MySQL 已启动，并且本机可用 `mysql` 命令行
-- 后端已启动，默认地址为 `http://127.0.0.1:8080`
-- 默认管理员账号仍为：
-  - 邮箱：`admin@example.com`
-  - 密码：`admin123`
-
-### 直接执行
+当前仓库已经适配 `mrwoov/kyzz` 数据集，导入代码如下
 
 ```bash
 python deploy/import_kyzz.py --mysql-password <你的 MySQL 密码>
